@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jogo Par ou Ímpar Animado</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Jogo Par ou Ímpar Animado</h1>
+
+  <div id="setup">
+    <div class="player-setup" id="player1-setup">
+      <h2>Jogador 1 - Configurar Boneco</h2>
+      <label>Nome:</label>
+      <input type="text" id="player1-name" placeholder="Nome do jogador 1" />
+      <label>Cor:</label>
+      <select id="player1-color">
+        <option value="azul">Azul</option>
+        <option value="vermelho">Vermelho</option>
+        <option value="amarelo">Amarelo</option>
+      </select>
+    </div>
+
+    <div class="player-setup" id="player2-setup">
+      <h2>Jogador 2 - Configurar Boneco</h2>
+      <label>Nome:</label>
+      <input type="text" id="player2-name" placeholder="Nome do jogador 2" />
+      <label>Cor:</label>
+      <select id="player2-color">
+        <option value="azul">Azul</option>
+        <option value="vermelho">Vermelho</option>
+        <option value="amarelo">Amarelo</option>
+      </select>
+    </div>
+
+    <button id="start-game-btn">Começar Jogo</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div id="info" style="margin-bottom:10px;"></div>
+
+    <div id="parimpar-section" style="display:none;">
+      <p>Jogador <span id="chooser-player"></span>, escolha Par ou Ímpar:</p>
+      <button id="btn-par" onclick="chooseParImpar('par')" autofocus>Par</button>
+      <button id="btn-impar" onclick="chooseParImpar('impar')">Ímpar</button>
+    </div>
+
+    <div id="number-selection" style="display:none;">
+
+      <div class="player-number-input" id="player1-number-input" style="display:none;">
+        <h3><span id="p1-name-display"></span>'s Turno</h3>
+        <label>Escolha um número de 1 a 10:</label>
+        <input type="number" id="player1-number" min="1" max="10" onkeydown="if(event.key==='Enter'){event.preventDefault(); player1Play();}" />
+        <button onclick="player1Play()">Enviar</button>
+      </div>
+
+      <div class="player-number-input" id="player2-number-input" style="display:none;">
+        <h3><span id="p2-name-display"></span>'s Turno</h3>
+        <label>Escolha um número de 1 a 10:</label>
+        <input type="number" id="player2-number" min="1" max="10" onkeydown="if(event.key==='Enter'){event.preventDefault(); player2Play();}" />
+        <button onclick="player2Play()">Enviar</button>
+      </div>
+
+    </div>
+
+    <div id="show-hands" style="display:none;">
+      <div class="player-hand" id="player1-hand">
+        <div class="avatar" id="player1-avatar"></div>
+        <div class="hand-number" id="player1-hand-number"></div>
+      </div>
+      <div class="player-hand" id="player2-hand">
+        <div class="avatar" id="player2-avatar"></div>
+        <div class="hand-number" id="player2-hand-number"></div>
+      </div>
+    </div>
+
+    <div id="message" style="margin-top:15px; font-weight:bold;"></div>
+
+    <div id="scoreboard" style="margin-top:20px;">
+      <h3>Placar</h3>
+      <p><span id="p1-name-score"></span>: <span id="score1">0</span></p>
+      <p><span id="p2-name-score"></span>: <span id="score2">0</span></p>
+      <p>Rodadas: <span id="rounds">0</span></p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

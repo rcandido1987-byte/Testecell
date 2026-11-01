@@ -1,0 +1,115 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+  background: #f7f7f7;
+  color: #333;
+  text-align: center;
+}
+
+.player-setup {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  display: inline-block;
+  width: 45%;
+  vertical-align: top;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+input, select, button {
+  margin: 10px 0;
+  padding: 8px;
+  font-size: 16px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background-color: #2c90f5;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+button:hover {
+  background-color: #1a5fc1;
+}
+
+#game {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px #aaa;
+  margin-top: 20px;
+}
+
+.player-number-input {
+  margin-bottom: 20px;
+}
+
+/* Alterado para mãos lado a lado */
+#show-hands {
+  display: flex !important;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 30px;
+  min-height: 150px;
+}
+
+#player1-hand, #player2-hand {
+  flex: 1;
+  text-align: center;
+}
+
+.player-hand {
+  /* Para manter texto centralizado */
+  text-align: center;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 3px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  color: white;
+}
+
+.avatar.azul {
+  background-color: #007bff;
+}
+.avatar.vermelho {
+  background-color: #dc3545;
+}
+.avatar.amarelo {
+  background-color: #ffc107;
+  color: black;
+}
+
+.hand-number {
+  font-size: 100px;
+  user-select: none;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: fadeZoomInAnim 0.6s forwards;
+}
+
+@keyframes fadeZoomInAnim {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+#message {
+  font-size: 18px;
+  margin-top: 25px;
+  min-height: 40px;
+}
