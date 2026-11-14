@@ -1,1 +1,14 @@
 
+{
+  "name": "diversao-com-os-amigos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Menu de jogos Diversão com os amigos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
