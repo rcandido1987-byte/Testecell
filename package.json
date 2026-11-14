@@ -1,9 +1,8 @@
-
 {
   "name": "diversao-com-os-amigos",
   "version": "1.0.0",
   "private": true,
-  "description": "Menu de jogos Diversão com os amigos",
+  "description": "Plataforma modular de minigames multiplayer",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
