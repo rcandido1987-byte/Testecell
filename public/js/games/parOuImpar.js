@@ -1,199 +1,125 @@
 "use strict";
 
-function create(players, onChange) {
-  const state = {
-    players,
-    onChange,
-    phase: "coin",
-    round: 1,
-    target: 3,
-    score: [0, 0],
-    numbers: [null, null],
-    parity: null,
-    chooser: Math.random() < 0.5 ? 0 : 1,
-    result: null,
-    winner: null,
-    rematchRequest: null,
-    rematchDeclined: false,
-    timer: null,
-    disposed: false
-  };
+window.GameModules = window.GameModules || {};
 
-  state.timer = setTimeout(() => {
-    if (state.disposed) return;
-    state.phase = "choose";
-    changed(state);
-    botTurn(state);
-  }, 2200);
+window.GameModules["par-ou-impar"] = {
+  render(root, state, sendAction) {
+    root.replaceChildren();
 
-  return state;
-}
+    const title = document.createElement("h2");
+    title.textContent = "Par ou Ímpar";
+    root.appendChild(title);
 
-function changed(state) {
-  if (!state.disposed) state.onChange();
-}
+    const score = document.createElement("p");
+    score.className = "game-score";
+    score.textContent =
+      "Você " + state.score[state.myIndex] +
+      " × " + state.score[1 - state.myIndex] +
+      " " + state.opponent +
+      " · até " + state.target + " pontos · rodada " + state.round;
+    root.appendChild(score);
 
-function snapshot(state, index) {
-  const opponent = state.players[1 - index];
+    const stage = document.createElement("div");
+    stage.className = "game-stage";
+    root.appendChild(stage);
 
-  return {
-    phase: state.phase,
-    round: state.round,
-    target: state.target,
-    score: state.score,
-    myIndex: index,
-    opponent: opponent?.name || "Oponente",
-    opponentBot: !!opponent?.bot,
-    chooser: state.chooser,
-    parity: state.parity,
-    myNumber: state.numbers[index],
-    opponentReady: state.numbers[1 - index] !== null,
-    result: state.result,
-    winner: state.winner,
-    rematchRequest: state.rematchRequest,
-    rematchDeclined: state.rematchDeclined
-  };
-}
+    const controls = document.createElement("div");
+    controls.className = "game-controls";
+    root.appendChild(controls);
 
-function onAction(state, index, action) {
-  if (!action || typeof action !== "object" || state.disposed) return;
+    const addButton = (label, action) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", () => sendAction(action));
+      controls.appendChild(button);
+    };
 
-  if (action.type === "pick" && state.phase === "choose" && index === state.chooser) {
-    if (action.value !== "par" && action.value !== "impar") return;
-    state.parity = action.value;
-    state.phase = "numbers";
-    changed(state);
-    botTurn(state);
-    return;
-  }
-
-  if (action.type === "number" && state.phase === "numbers" && state.numbers[index] === null) {
-    const number = Number(action.value);
-    if (!Number.isInteger(number) || number < 0 || number > 10) return;
-
-    state.numbers[index] = number;
-
-    if (state.numbers.every((value) => value !== null)) {
-      resolveRound(state);
-    } else {
-      changed(state);
-      botTurn(state);
-    }
-    return;
-  }
-
-  if (
-    action.type === "rematch" &&
-    state.phase === "end" &&
-    state.rematchRequest === null &&
-    state.target < 7 &&
-    index !== state.winner
-  ) {
-    state.rematchRequest = index;
-    changed(state);
-    return;
-  }
-
-  if (
-    action.type === "rematchResponse" &&
-    state.phase === "end" &&
-    state.rematchRequest !== null &&
-    index !== state.rematchRequest
-  ) {
-    if (action.accept) {
-      state.target += 2;
-      state.phase = "coin";
-      state.round = 1;
-      state.score = [0, 0];
-      state.numbers = [null, null];
-      state.parity = null;
-      state.winner = null;
-      state.rematchRequest = null;
-      state.rematchDeclined = false;
-      state.chooser = Math.random() < 0.5 ? 0 : 1;
-      state.timer = setTimeout(() => {
-        if (state.disposed) return;
-        state.phase = "choose";
-        changed(state);
-        botTurn(state);
-      }, 2200);
-    } else {
-      state.rematchDeclined = true;
-    }
-    changed(state);
-  }
-}
-
-function resolveRound(state) {
-  const sum = state.numbers[0] + state.numbers[1];
-  const result = sum % 2 === 0 ? "par" : "impar";
-  const pointFor = result === state.parity ? state.chooser : 1 - state.chooser;
-
-  state.score[pointFor] += 1;
-  state.result = {
-    numbers: [...state.numbers],
-    sum,
-    parity: result,
-    pointFor
-  };
-  state.phase = "reveal";
-
-  if (state.score[pointFor] >= state.target) {
-    state.winner = pointFor;
-  }
-
-  changed(state);
-
-  state.timer = setTimeout(() => {
-    if (state.disposed) return;
-
-    if (state.winner !== null) {
-      state.phase = "end";
-    } else {
-      state.round += 1;
-      state.chooser = 1 - pointFor;
-      state.numbers = [null, null];
-      state.parity = null;
-      state.phase = "choose";
+    if (state.phase === "coin") {
+      stage.innerHTML = "<div class=\"big-number\">🪙</div><p>Sorteando quem escolhe par ou ímpar…</p>";
+      return;
     }
 
-    changed(state);
-    botTurn(state);
-  }, 3200);
-}
+    if (state.phase === "choose") {
+      const message = document.createElement("p");
+      message.textContent = state.chooser === state.myIndex
+        ? "Sua vez: escolha par ou ímpar."
+        : state.opponent + " está escolhendo par ou ímpar.";
+      stage.appendChild(message);
 
-function botTurn(state) {
-  if (state.disposed || state.phase === "end" || state.phase === "reveal") return;
-
-  const botIndex = state.players.findIndex((player) => player.bot);
-  if (botIndex < 0) return;
-
-  if (state.phase === "choose" && state.chooser === botIndex) {
-    setTimeout(() => {
-      if (state.phase !== "choose") return;
-      state.parity = Math.random() < 0.5 ? "par" : "impar";
-      state.phase = "numbers";
-      changed(state);
-      botTurn(state);
-    }, 800);
-  } else if (state.phase === "numbers" && state.numbers[botIndex] === null) {
-    setTimeout(() => {
-      if (state.phase !== "numbers" || state.numbers[botIndex] !== null) return;
-      state.numbers[botIndex] = Math.floor(Math.random() * 11);
-      if (state.numbers.every((value) => value !== null)) {
-        resolveRound(state);
-      } else {
-        changed(state);
+      if (state.chooser === state.myIndex) {
+        addButton("Par", { type: "pick", value: "par" });
+        addButton("Ímpar", { type: "pick", value: "impar" });
       }
-    }, 1000);
+      return;
+    }
+
+    if (state.phase === "numbers") {
+      const message = document.createElement("p");
+      message.textContent = state.myNumber !== null
+        ? "Número enviado. Aguardando " + state.opponent + "…"
+        : "Escolha seu número de 0 a 10.";
+      stage.appendChild(message);
+
+      if (state.myNumber === null) {
+        for (let number = 0; number <= 10; number += 1) {
+          addButton(String(number), { type: "number", value: number });
+        }
+      }
+      return;
+    }
+
+    if (state.phase === "reveal" && state.result) {
+      const otherNumber = state.result.numbers[1 - state.myIndex];
+      const ownNumber = state.result.numbers[state.myIndex];
+
+      const numbers = document.createElement("div");
+      numbers.className = "big-number";
+      numbers.textContent = ownNumber + " + " + otherNumber + " = " + state.result.sum;
+      stage.appendChild(numbers);
+
+      const outcome = document.createElement("p");
+      outcome.className = "game-result";
+      outcome.textContent =
+        (state.result.parity === "par" ? "Deu Par" : "Deu Ímpar") +
+        (state.result.pointFor === state.myIndex ? " · ponto seu!" : " · ponto do oponente.");
+      stage.appendChild(outcome);
+
+      if (state.winner !== null) {
+        const winner = document.createElement("p");
+        winner.textContent = state.winner === state.myIndex ? "Você venceu a partida!" : "Seu oponente venceu.";
+        stage.appendChild(winner);
+      }
+      return;
+    }
+
+    if (state.phase === "end") {
+      const won = state.winner === state.myIndex;
+      const result = document.createElement("p");
+      result.className = won ? "game-result" : "";
+      result.textContent = won ? "Você venceu!" : "Você perdeu.";
+      stage.appendChild(result);
+
+      const finalScore = document.createElement("p");
+      finalScore.textContent =
+        "Placar final: " + state.score[state.myIndex] +
+        " × " + state.score[1 - state.myIndex];
+      stage.appendChild(finalScore);
+
+      if (state.rematchDeclined) {
+        const declined = document.createElement("p");
+        declined.textContent = "Pedido de revanche recusado.";
+        stage.appendChild(declined);
+      } else if (state.rematchRequest === null && state.target < 7 && !won) {
+        addButton("Pedir revanche", { type: "rematch" });
+      } else if (state.rematchRequest === state.myIndex) {
+        const waiting = document.createElement("p");
+        waiting.textContent = "Pedido de revanche enviado.";
+        stage.appendChild(waiting);
+      } else if (state.rematchRequest !== null) {
+        addButton("Aceitar revanche", { type: "rematchResponse", accept: true });
+        addButton("Recusar", { type: "rematchResponse", accept: false });
+      }
+    }
   }
-}
-
-function dispose(state) {
-  if (!state) return;
-  state.disposed = true;
-  clearTimeout(state.timer);
-}
-
-module.exports = { create, snapshot, onAction, dispose };
-
+};
