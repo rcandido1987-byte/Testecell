@@ -250,37 +250,27 @@
 
       <div id="parity-game" class="panel hidden" style="margin-top:14px;padding:16px;background:#020617">
         <div class="eyebrow">Par ou Ímpar</div>
-        <p id="parity-game-status" style="margin:8px 0 12px">Aguardando jogadores...</p>
+        <p id="parity-game-status" style="margin:8px 0 12px" aria-live="polite">Aguardando jogadores...</p>
+        <p id="parity-score" class="notice hidden" style="margin:8px 0 12px" aria-live="polite"></p>
 
         <button id="start-npc-game" class="primary hidden" type="button" style="margin-top:0">
           Desafiar a máquina
         </button>
 
-        <form id="npc-game-form" class="hidden" style="margin-top:12px">
-          <label for="player-number">Seu número</label>
-          <select id="player-number" required
-            style="width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#020617;color:#fff;font:inherit">
-            <option value="1">01</option>
-            <option value="2">02</option>
-            <option value="3">03</option>
-            <option value="4">04</option>
-            <option value="5">05</option>
-            <option value="6">06</option>
-            <option value="7">07</option>
-            <option value="8">08</option>
-            <option value="9">09</option>
-          </select>
-
-          <label for="player-parity" style="margin-top:12px">Você aposta em</label>
-          <select id="player-parity" required
-            style="width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#020617;color:#fff;font:inherit">
-            <option value="Par">Par</option>
-            <option value="Ímpar">Ímpar</option>
-          </select>
-
-          <button class="primary" type="submit">Jogar rodada</button>
-        </form>
-        <p id="npc-game-result" class="notice hidden" role="status"></p>
+        <div id="parity-controls" class="hidden" style="margin-top:12px">
+          <p id="parity-role" class="muted" style="margin:0 0 10px"></p>
+          <div id="parity-number-buttons" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <button class="secondary" type="button" data-parity-number="1">01</button>
+            <button class="secondary" type="button" data-parity-number="2">02</button>
+            <button class="secondary" type="button" data-parity-number="3">03</button>
+            <button class="secondary" type="button" data-parity-number="4">04</button>
+            <button class="secondary" type="button" data-parity-number="5">05</button>
+            <button class="secondary" type="button" data-parity-number="6">06</button>
+            <button class="secondary" type="button" data-parity-number="7">07</button>
+            <button class="secondary" type="button" data-parity-number="8">08</button>
+            <button class="secondary" type="button" data-parity-number="9">09</button>
+          </div>
+        </div>
       </div>
 
       <div id="private-code-panel" class="panel hidden" style="margin-top:14px;padding:16px;background:#020617">
@@ -336,6 +326,11 @@
     let roomSocket = null;
     let roomReady = false;
     let npcGameActive = false;
+    let parityStartRequested = false;
+    let paritySubmitted = false;
+    let parityLastRound = 0;
+    let parityScoreHost = 0;
+    let parityScoreGuest = 0;
 
     const inviteParams = new URLSearchParams(window.location.search);
     const invitedRoom = inviteParams.get("sala");
@@ -355,10 +350,15 @@
       roomMode = mode;
       roomReady = false;
       npcGameActive = false;
+      parityStartRequested = false;
+      paritySubmitted = false;
+      parityLastRound = 0;
+      parityScoreHost = 0;
+      parityScoreGuest = 0;
       document.getElementById("parity-game").classList.add("hidden");
       document.getElementById("start-npc-game").classList.add("hidden");
-      document.getElementById("npc-game-form").classList.add("hidden");
-      document.getElementById("npc-game-result").classList.add("hidden");
+      document.getElementById("parity-controls").classList.add("hidden");
+      document.getElementById("parity-score").classList.add("hidden");
 
       document.getElementById("room-game-name").textContent = game.name;
       document.getElementById("room-game-players").textContent = game.players;
@@ -409,6 +409,11 @@
           return;
         }
 
+        if (message.t === "gameActions" && message.game === "Par ou Ímpar") {
+          handleParityActions(message);
+          return;
+        }
+
         if (message.t !== "state" || !message.room) return;
 
         roomCode = message.room.code || "";
@@ -432,30 +437,41 @@
           const parityPanel = document.getElementById("parity-game");
           const parityStatus = document.getElementById("parity-game-status");
           const npcButton = document.getElementById("start-npc-game");
-          const npcForm = document.getElementById("npc-game-form");
+          const parityControls = document.getElementById("parity-controls");
+          const parityScore = document.getElementById("parity-score");
+          const me = message.room.players.find((player) => player.name === playerName);
 
           parityPanel.classList.remove("hidden");
 
-          if (npcGameActive) {
-            parityStatus.textContent =
-              "Partida contra a máquina iniciada. Escolha seu número e se aposta em Par ou Ímpar.";
-            npcButton.classList.add("hidden");
-            npcForm.classList.remove("hidden");
-          } else if (playerCount === 1) {
-            parityStatus.textContent =
-              "Você está sozinho na sala. Desafie a máquina para começar uma partida.";
+          if (playerCount === 2 && !message.room.started && me && me.host && !parityStartRequested) {
+            parityStartRequested = true;
+            roomSocket.send(JSON.stringify({ t: "start" }));
+          }
+
+          if (playerCount === 1 && !npcGameActive) {
+            parityStatus.textContent = "Você está sozinho na sala. Desafie a máquina para jogar.";
             npcButton.classList.remove("hidden");
-            npcForm.classList.add("hidden");
-          } else if (playerCount === 2) {
-            parityStatus.textContent =
-              "Dois jogadores conectados: a partida foi aberta automaticamente. Para sincronizar as jogadas entre os celulares, o server.js também precisa implementar as mensagens do jogo.";
+            parityControls.classList.add("hidden");
+            parityScore.classList.add("hidden");
+          } else if (playerCount === 2 && message.room.started) {
+            parityStatus.textContent = paritySubmitted
+              ? "Número enviado. Aguardando o outro jogador..."
+              : "Partida iniciada! Escolha seu número de 01 a 09.";
             npcButton.classList.add("hidden");
-            npcForm.classList.add("hidden");
-          } else {
-            parityStatus.textContent =
-              "Par ou Ímpar é para 1x1. Há mais de dois jogadores nesta sala; o limite precisa ser aplicado no server.js.";
+            parityControls.classList.remove("hidden");
+            parityScore.classList.remove("hidden");
+            document.getElementById("parity-role").textContent =
+              me && me.host ? "Você joga como Par." : "Você joga como Ímpar.";
+            document.getElementById("parity-score").textContent =
+              "Placar — Par: " + parityScoreHost + " · Ímpar: " + parityScoreGuest;
+          } else if (playerCount > 2) {
+            parityStatus.textContent = "Par ou Ímpar é uma partida para exatamente dois jogadores.";
             npcButton.classList.add("hidden");
-            npcForm.classList.add("hidden");
+            parityControls.classList.add("hidden");
+          } else if (npcGameActive) {
+            parityStatus.textContent = "Partida contra a máquina. Escolha seu número de 01 a 09.";
+            npcButton.classList.add("hidden");
+            parityControls.classList.remove("hidden");
           }
         }
 
@@ -493,6 +509,43 @@
           document.getElementById("room-live-status").textContent = "Conexão com a sala encerrada.";
         }
       };
+    }
+
+    function handleParityActions(message) {
+      if (!message.actions || message.actions.length !== 2 || message.round <= parityLastRound) return;
+
+      parityLastRound = message.round;
+      paritySubmitted = false;
+
+      const hostAction = message.actions.find((item) => item.host);
+      const guestAction = message.actions.find((item) => !item.host);
+      if (!hostAction || !guestAction) return;
+
+      const hostNumber = Number(hostAction.action.number);
+      const guestNumber = Number(guestAction.action.number);
+      if (!Number.isInteger(hostNumber) || !Number.isInteger(guestNumber)) return;
+
+      const sum = hostNumber + guestNumber;
+      const even = sum % 2 === 0;
+      if (even) parityScoreHost += 1;
+      else parityScoreGuest += 1;
+
+      document.getElementById("parity-score").textContent =
+        "Placar — Par: " + parityScoreHost + " · Ímpar: " + parityScoreGuest;
+      document.getElementById("parity-game-status").textContent =
+        "Rodada " + message.round + ": " + hostAction.name + " escolheu " +
+        String(hostNumber).padStart(2, "0") + " e " + guestAction.name +
+        " escolheu " + String(guestNumber).padStart(2, "0") + ". Soma: " +
+        sum + ". Deu " + (even ? "Par — ponto para Par!" : "Ímpar — ponto para Ímpar!");
+
+      window.setTimeout(() => {
+        paritySubmitted = false;
+        document.querySelectorAll("[data-parity-number]").forEach((button) => {
+          button.disabled = false;
+        });
+        document.getElementById("parity-game-status").textContent =
+          "Escolha seu número de 01 a 09.";
+      }, 2200);
     }
 
     function renderGames() {
@@ -628,37 +681,61 @@
 
     document.getElementById("start-npc-game").addEventListener("click", () => {
       npcGameActive = true;
+      parityScoreHost = 0;
+      parityScoreGuest = 0;
+      paritySubmitted = false;
       document.getElementById("parity-game-status").textContent =
-        "Partida contra a máquina iniciada. Escolha seu número e se aposta em Par ou Ímpar.";
+        "Partida contra a máquina. Escolha seu número de 01 a 09.";
+      document.getElementById("parity-score").textContent = "Placar — Você: 0 · Máquina: 0";
+      document.getElementById("parity-score").classList.remove("hidden");
+      document.getElementById("parity-role").textContent =
+        "A máquina escolherá um número aleatório de 01 a 09.";
       document.getElementById("start-npc-game").classList.add("hidden");
-      document.getElementById("npc-game-form").classList.remove("hidden");
-      document.getElementById("npc-game-result").classList.add("hidden");
+      document.getElementById("parity-controls").classList.remove("hidden");
     });
 
-    document.getElementById("npc-game-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      if (!npcGameActive) return;
+    document.getElementById("parity-number-buttons").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-parity-number]");
+      if (!button || button.disabled || paritySubmitted) return;
 
-      const playerNumber = Number(document.getElementById("player-number").value);
-      const playerParity = document.getElementById("player-parity").value;
-      const machineNumber = Math.floor(Math.random() * 9) + 1;
-      const sum = playerNumber + machineNumber;
-      const resultParity = sum % 2 === 0 ? "Par" : "Ímpar";
-      const won = playerParity === resultParity;
-      const result = document.getElementById("npc-game-result");
+      const number = Number(button.dataset.parityNumber);
+      if (roomGame === "Par ou Ímpar" && npcGameActive) {
+        paritySubmitted = true;
+        const machineNumber = Math.floor(Math.random() * 9) + 1;
+        const sum = number + machineNumber;
+        const even = sum % 2 === 0;
+        if (even) parityScoreHost += 1;
+        else parityScoreGuest += 1;
 
-      result.textContent =
-        "Você: " + String(playerNumber).padStart(2, "0") +
-        " (" + playerParity + ") · Máquina: " +
-        String(machineNumber).padStart(2, "0") +
-        " · Soma: " + String(sum).padStart(2, "0") +
-        " (" + resultParity + "). " +
-        (won ? "Você venceu a rodada!" : "A máquina venceu a rodada!");
-      result.classList.remove("hidden");
+        document.getElementById("parity-score").textContent =
+          "Placar — Você: " + parityScoreHost + " · Máquina: " + parityScoreGuest;
+        document.getElementById("parity-game-status").textContent =
+          "Você escolheu " + String(number).padStart(2, "0") + " e a máquina " +
+          String(machineNumber).padStart(2, "0") + ". Soma: " + sum + ". Deu " +
+          (even ? "Par!" : "Ímpar!");
+
+        window.setTimeout(() => {
+          paritySubmitted = false;
+          document.getElementById("parity-game-status").textContent =
+            "Escolha seu próximo número de 01 a 09.";
+        }, 1800);
+        return;
+      }
+
+      if (!roomSocket || roomSocket.readyState !== WebSocket.OPEN || paritySubmitted) return;
+      paritySubmitted = true;
+      document.querySelectorAll("[data-parity-number]").forEach((item) => {
+        item.disabled = true;
+      });
+      document.getElementById("parity-game-status").textContent =
+        "Número enviado. Aguardando o outro jogador...";
+      roomSocket.send(JSON.stringify({ t: "gameAction", action: { number } }));
     });
 
     document.getElementById("back-to-games").addEventListener("click", () => {
       npcGameActive = false;
+      paritySubmitted = false;
+      parityStartRequested = false;
       if (roomSocket) {
         roomSocket.onclose = null;
         if (roomSocket.readyState === WebSocket.OPEN) {
