@@ -32,6 +32,7 @@ const games = new Set([
   "Stop"
 ]);
 const rooms = new Map();
+const publicRooms = new Map();
 const connections = new Set();
 const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
@@ -69,6 +70,7 @@ function roomState(room) {
     room: {
       code: room.code,
       game: room.game,
+      private: room.private,
       players: room.players.map((player) => ({
         name: player.name,
         host: player.host
@@ -88,11 +90,10 @@ function removeFromRoom(conn) {
   room.players = room.players.filter((player) => player.conn !== conn);
   conn.room = null;
 
-  if (room.players.length === 0) {
+  if (room.players.length === 0 && room.private) {
     rooms.delete(room.code);
-  } else {
-    broadcastRoom(room);
   }
+  broadcastRoom(room);
 }
 
 function cleanName(value) {
@@ -118,6 +119,32 @@ function handleMessage(conn, raw) {
 
   if (!message || typeof message !== "object") return;
 
+  if (message.t === "public") {
+    const name = cleanName(message.name);
+    const game = String(message.game || "");
+
+    if (!name) {
+      sendJson(conn, { t: "error", message: "Digite seu nome para entrar na sala." });
+      return;
+    }
+    if (!games.has(game)) {
+      sendJson(conn, { t: "error", message: "Esse jogo não é válido." });
+      return;
+    }
+
+    removeFromRoom(conn);
+    let room = publicRooms.get(game);
+    if (!room) {
+      room = { code: "PUBLIC-" + game, game, private: false, players: [] };
+      publicRooms.set(game, room);
+    }
+    conn.name = name;
+    conn.room = room;
+    room.players.push({ name, host: false, conn });
+    broadcastRoom(room);
+    return;
+  }
+
   if (message.t === "create") {
     const name = cleanName(message.name);
     const game = String(message.game || "");
@@ -133,7 +160,7 @@ function handleMessage(conn, raw) {
 
     removeFromRoom(conn);
     const code = newRoomCode();
-    const room = { code, game, players: [] };
+    const room = { code, game, private: true, players: [] };
     rooms.set(code, room);
     conn.name = name;
     conn.room = room;
