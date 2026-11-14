@@ -2,7 +2,7 @@
   "name": "diversao-com-os-amigos",
   "version": "1.0.0",
   "private": true,
-  "description": "Plataforma modular de minigames multiplayer",
+  "description": "Plataforma multiplayer de minigames",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
