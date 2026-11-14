@@ -235,12 +235,12 @@
 
     <section id="room-screen" class="panel hidden">
       <div class="eyebrow">Sala de jogo</div>
-      <h2>Par ou Ímpar <span class="muted">· 1x1</span></h2>
+      <h2><span id="room-game-name"></span> <span class="muted">· <span id="room-game-players"></span></span></h2>
       <p class="muted">Você entrou na sala, <strong id="room-player-name"></strong>.</p>
 
       <div class="waiting">
-        <strong>A sala está esperando outro jogador</strong>
-        <p style="margin-bottom:0">Convide um amigo para jogar com você.</p>
+        <strong>Sala pronta para receber os jogadores</strong>
+        <p style="margin-bottom:0">Compartilhe o convite: quem abrir o link entrará diretamente nesta sala e neste jogo.</p>
       </div>
 
       <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
@@ -249,7 +249,7 @@
       </div>
 
       <button id="invite-friend" class="primary" type="button">
-        Convidar amigo(a) pelo WhatsApp ↗
+        Convidar amigo(a) para esta sala ↗
       </button>
       <p id="invite-status" class="notice hidden" role="status"></p>
       <p class="muted" style="text-align:center;font-size:.82rem">
@@ -284,6 +284,26 @@
     let playerName = "";
     let selectedGame = "";
     let roomCode = "";
+    let roomGame = "";
+
+    const inviteParams = new URLSearchParams(window.location.search);
+    const invitedRoom = inviteParams.get("sala");
+    const invitedGame = inviteParams.get("jogo");
+
+    function openRoom(gameName, code) {
+      const game = games.find((item) => item.name === gameName);
+      if (!game || !code) return;
+
+      roomGame = game.name;
+      roomCode = code;
+      document.getElementById("room-game-name").textContent = game.name;
+      document.getElementById("room-game-players").textContent = game.players;
+      document.getElementById("room-player-name").textContent = playerName;
+      document.getElementById("room-code").textContent = roomCode;
+      nameScreen.classList.add("hidden");
+      gamesScreen.classList.add("hidden");
+      roomScreen.classList.remove("hidden");
+    }
 
     function renderGames() {
       games.forEach((game) => {
@@ -335,6 +355,12 @@
       }
 
       welcomeName.textContent = playerName;
+
+      if (invitedRoom && invitedGame && games.some((game) => game.name === invitedGame)) {
+        openRoom(invitedGame, invitedRoom);
+        return;
+      }
+
       nameScreen.classList.add("hidden");
       gamesScreen.classList.remove("hidden");
     });
@@ -348,18 +374,8 @@
     chooseButton.addEventListener("click", () => {
       if (!selectedGame) return;
 
-      if (selectedGame === "Par ou Ímpar") {
-        roomCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-        document.getElementById("room-player-name").textContent = playerName;
-        document.getElementById("room-code").textContent = roomCode;
-        gamesScreen.classList.add("hidden");
-        roomScreen.classList.remove("hidden");
-        return;
-      }
-
-      selectionMessage.textContent =
-        selectedGame + " foi selecionado. A dinâmica desse jogo será adicionada depois.";
-      selectionMessage.classList.remove("hidden");
+      roomCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+      openRoom(selectedGame, roomCode);
     });
 
     document.getElementById("invite-friend").addEventListener("click", async () => {
@@ -374,15 +390,15 @@
 
       const inviteUrl = new URL(window.location.href);
       inviteUrl.searchParams.set("sala", roomCode);
-
+      inviteUrl.searchParams.set("jogo", roomGame);
       const message =
-        "Oi! Vamos jogar Par ou Ímpar? Entre na minha sala: " +
+        "Oi! Vamos jogar " + roomGame + "? Abra este link para entrar direto na minha sala: " +
         inviteUrl.toString() + " (código: " + roomCode + ")";
 
       if (navigator.share) {
         try {
           await navigator.share({
-            title: "Convite para jogar Par ou Ímpar",
+            title: "Convite para jogar " + roomGame,
             text: message,
             url: inviteUrl.toString()
           });
