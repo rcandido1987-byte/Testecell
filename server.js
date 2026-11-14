@@ -71,6 +71,8 @@ function roomState(room) {
       code: room.code,
       game: room.game,
       private: room.private,
+      started: !!room.started,
+      round: room.round || 0,
       players: room.players.map((player) => ({
         name: player.name,
         host: player.host
@@ -90,6 +92,9 @@ function removeFromRoom(conn) {
   room.players = room.players.filter((player) => player.conn !== conn);
   conn.room = null;
 
+  if (room.players.length > 0 && !room.players.some((player) => player.host)) {
+    room.players[0].host = true;
+  }
   if (room.players.length === 0 && room.private) {
     rooms.delete(room.code);
   }
@@ -135,12 +140,12 @@ function handleMessage(conn, raw) {
     removeFromRoom(conn);
     let room = publicRooms.get(game);
     if (!room) {
-      room = { code: "PUBLIC-" + game, game, private: false, players: [] };
+      room = { code: "PUBLIC-" + game, game, private: false, players: [], started: false, round: 0, actions: {} };
       publicRooms.set(game, room);
     }
     conn.name = name;
     conn.room = room;
-    room.players.push({ name, host: false, conn });
+    room.players.push({ name, host: room.players.length === 0, conn });
     broadcastRoom(room);
     return;
   }
@@ -160,7 +165,7 @@ function handleMessage(conn, raw) {
 
     removeFromRoom(conn);
     const code = newRoomCode();
-    const room = { code, game, private: true, players: [] };
+    const room = { code, game, private: true, players: [], started: false, round: 0, actions: {} };
     rooms.set(code, room);
     conn.name = name;
     conn.room = room;
@@ -188,6 +193,56 @@ function handleMessage(conn, raw) {
     conn.room = room;
     room.players.push({ name, host: false, conn });
     broadcastRoom(room);
+    return;
+  }
+
+  if (message.t === "start") {
+    const room = conn.room;
+    const player = room && room.players.find((item) => item.conn === conn);
+    if (!room || !player || !player.host || room.started) return;
+
+    if (room.players.length < 2) {
+      sendJson(conn, { t: "error", message: "É preciso ter pelo menos dois jogadores para iniciar." });
+      return;
+    }
+    if (room.game === "Par ou Ímpar" && room.players.length !== 2) {
+      sendJson(conn, { t: "error", message: "Par ou Ímpar precisa de exatamente dois jogadores." });
+      return;
+    }
+
+    room.started = true;
+    room.round = 1;
+    room.actions = {};
+    broadcastRoom(room);
+    return;
+  }
+
+  if (message.t === "gameAction") {
+    const room = conn.room;
+    if (!room || !room.started || !room.players.some((item) => item.conn === conn)) return;
+    if (!message.action || typeof message.action !== "object" || Array.isArray(message.action)) return;
+
+    const playerIndex = room.players.findIndex((item) => item.conn === conn);
+    if (playerIndex < 0 || Object.prototype.hasOwnProperty.call(room.actions, playerIndex)) return;
+    room.actions[playerIndex] = message.action;
+
+    if (room.players.every((item, index) =>
+      Object.prototype.hasOwnProperty.call(room.actions, index)
+    )) {
+      const result = {
+        t: "gameActions",
+        game: room.game,
+        round: room.round,
+        actions: room.players.map((item, index) => ({
+          name: item.name,
+          host: item.host,
+          action: room.actions[index]
+        }))
+      };
+      room.players.forEach((item) => sendJson(item.conn, result));
+      room.round += 1;
+      room.actions = {};
+    }
     return;
   }
 
