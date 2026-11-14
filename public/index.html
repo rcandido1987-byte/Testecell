@@ -767,13 +767,29 @@
         <section class="room-panel hidden" id="invite-room" aria-label="Convite privado">
           <div class="room-header">
             <h3>Convite da sala particular</h3>
-            <span class="room-status"><span class="online-dot"></span> Pronto para compartilhar</span>
+            <span class="room-status"><span class="online-dot"></span> Sala online</span>
           </div>
-          <p class="room-note">Este código é apenas uma prévia visual. A criação real da sala depende da conexão com o servidor.</p>
+          <p class="room-note" id="invite-help">Crie a sala e compartilhe o link para seu amigo entrar.</p>
           <div class="invite-row">
             <input id="invite-code" readonly aria-label="Código de convite">
             <button class="secondary" type="button" id="copy-code">Copiar código</button>
+            <button class="primary" type="button" id="whatsapp-invite">Enviar pelo WhatsApp</button>
           </div>
+        </section>
+
+        <section class="room-panel hidden" id="live-room-panel" aria-label="Sala atual">
+          <div class="room-header">
+            <h3>Sala de jogo</h3>
+            <span class="room-status"><span class="online-dot"></span> Ao vivo</span>
+          </div>
+          <p class="room-note" id="live-room-status" aria-live="polite"></p>
+          <div class="player-list" id="live-player-list"></div>
+          <button class="primary" type="button" id="start-game-button">Iniciar jogo</button>
+          <button class="secondary" type="button" id="live-whatsapp-button">Convidar pelo WhatsApp</button>
+        </section>
+
+        <section class="room-panel hidden" id="live-game-panel" aria-label="Partida">
+          <div id="live-game-mount"></div>
         </section>
       </div>
     </section>
@@ -928,6 +944,311 @@
     });
 
     renderGames();
+  </script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $id = (id) => document.getElementById(id);
+      const gameIds = {
+        "Par ou Ímpar": "par-impar",
+        "Jogo da Forca": "forca",
+        "Jokenpô": "jokenpo",
+        "Detetive": "detetive",
+        "Jogo da Velha": "velha",
+        "Xadrez": "xadrez"
+      };
+
+      let socket = null;
+      let activeRoom = null;
+      let activeGameState = null;
+      let inviteFromUrl = null;
+
+      function toast(message) {
+        const element = $id("toast");
+        element.textContent = message;
+        element.classList.remove("hidden");
+        clearTimeout(window.__gameToastTimer);
+        window.__gameToastTimer = setTimeout(() => element.classList.add("hidden"), 3200);
+      }
+
+      function showLobby() {
+        document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
+        $id("screen-lobby").classList.add("active");
+        document.getElementById("hero-title").textContent = "Sua sala está pronta.";
+        document.getElementById("hero-copy").textContent = "Acompanhe quem entrou e inicie a partida quando todos estiverem na sala.";
+        document.getElementById("step-1").classList.add("done");
+        document.getElementById("step-2").classList.add("done");
+        document.getElementById("step-3").classList.add("active");
+      }
+
+      function send(message) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          toast("Conectando ao servidor. Tente novamente em instantes.");
+          return false;
+        }
+        socket.send(JSON.stringify(message));
+        return true;
+      }
+
+      function connect() {
+        const scheme = location.protocol === "https:" ? "wss://" : "ws://";
+        socket = new WebSocket(scheme + location.host + "/ws");
+
+        socket.addEventListener("message", (event) => {
+          let message;
+          try {
+            message = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          if (message.t === "error") {
+            toast(message.message || "Não foi possível concluir a ação.");
+            return;
+          }
+
+          if (message.t === "room" && message.room) {
+            activeRoom = message.room;
+            renderRoom();
+            return;
+          }
+
+          if (message.t === "game" && message.state) {
+            activeGameState = message.state;
+            renderGame(message.state);
+          }
+        });
+
+        socket.addEventListener("close", () => {
+          if (activeRoom) toast("A conexão com a sala foi encerrada. Atualize a página para voltar.");
+        });
+      }
+
+      function roomLink() {
+        const url = new URL(location.href);
+        url.search = "";
+        url.searchParams.set("room", activeRoom.code);
+        url.searchParams.set("game", activeRoom.game);
+        return url.toString();
+      }
+
+      async function shareRoom() {
+        if (!activeRoom) {
+          toast("A sala ainda está sendo criada.");
+          return;
+        }
+
+        const link = roomLink();
+        const gameName = document.getElementById("selected-title").textContent;
+        const message = "Vamos jogar " + gameName + "? Entre na minha sala pelo link: " + link;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "Convite para jogar " + gameName,
+              text: message,
+              url: link
+            });
+            return;
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+          }
+        }
+
+        window.open("https://wa.me/?text=" + encodeURIComponent(message), "_blank", "noopener,noreferrer");
+      }
+
+      function renderRoom() {
+        const room = activeRoom;
+        const panel = $id("live-room-panel");
+        const invitePanel = $id("invite-room");
+        const isHost = room.players.some((player) => player.id === room.host && player.name === $id("lobby-player").textContent);
+        const enoughPlayers = room.players.length >= room.min;
+        const gameName = Object.keys(gameIds).find((name) => gameIds[name] === room.game) || room.game;
+
+        document.querySelector(".lobby-options").classList.add("hidden");
+        document.querySelector(".selected-game").classList.remove("hidden");
+        $id("selected-title").textContent = gameName;
+        $id("live-room-panel").classList.remove("hidden");
+        $id("live-room-status").textContent = room.started
+          ? "Partida iniciada."
+          : "Jogadores na sala: " + room.players.length + "/" + room.max +
+            (enoughPlayers ? " · pronto para iniciar." : " · aguardando jogadores.");
+
+        const list = $id("live-player-list");
+        list.replaceChildren();
+
+        room.players.forEach((player) => {
+          const chip = document.createElement("span");
+          chip.className = "player-chip";
+          const avatar = document.createElement("span");
+          avatar.className = "avatar";
+          avatar.textContent = player.name.slice(0, 1).toUpperCase();
+          const label = document.createElement("span");
+          label.textContent = player.name + (player.host ? " · anfitrião" : "");
+          chip.append(avatar, label);
+          list.appendChild(chip);
+        });
+
+        const startButton = $id("start-game-button");
+        startButton.classList.toggle("hidden", !isHost || room.started);
+        startButton.disabled = !enoughPlayers;
+        startButton.textContent = enoughPlayers ? "Iniciar jogo" : "Aguardando jogadores";
+
+        const codeInput = $id("invite-code");
+        codeInput.value = room.code;
+        invitePanel.classList.remove("hidden");
+        $id("invite-help").textContent = "Código " + room.code + " · o link abre esta sala depois que o convidado informar o nome.";
+        $id("live-whatsapp-button").textContent = "Convidar pelo WhatsApp";
+
+        if (room.started && activeGameState) {
+          panel.classList.add("hidden");
+          $id("live-game-panel").classList.remove("hidden");
+        }
+
+        showLobby();
+      }
+
+      function addGameButton(container, label, action) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "secondary";
+        button.textContent = label;
+        button.addEventListener("click", () => send({ t: "action", action }));
+        container.appendChild(button);
+      }
+
+      function renderGame(state) {
+        const panel = $id("live-game-panel");
+        const mount = $id("live-game-mount");
+        panel.classList.remove("hidden");
+        $id("live-room-panel").classList.add("hidden");
+        mount.replaceChildren();
+
+        const title = document.createElement("h3");
+        title.textContent = "Par ou Ímpar";
+        mount.appendChild(title);
+
+        const score = document.createElement("p");
+        score.className = "room-note";
+        score.textContent = "Você " + state.score[state.myIndex] + " × " +
+          state.score[1 - state.myIndex] + " " + state.opponent +
+          " · até " + state.target + " pontos · rodada " + state.round;
+        mount.appendChild(score);
+
+        const status = document.createElement("p");
+        status.className = "room-note";
+        mount.appendChild(status);
+
+        const controls = document.createElement("div");
+        controls.className = "invite-row";
+        mount.appendChild(controls);
+
+        if (state.phase === "choose") {
+          status.textContent = state.chooser === state.myIndex
+            ? "Sua vez: escolha Par ou Ímpar."
+            : state.opponent + " está escolhendo.";
+          if (state.chooser === state.myIndex) {
+            addGameButton(controls, "Par", { type: "pick", value: "par" });
+            addGameButton(controls, "Ímpar", { type: "pick", value: "impar" });
+          }
+        } else if (state.phase === "numbers") {
+          status.textContent = state.myNumber !== null
+            ? "Número enviado. Aguardando " + state.opponent + "..."
+            : "Escolha um número de 0 a 10.";
+          if (state.myNumber === null) {
+            for (let number = 0; number <= 10; number += 1) {
+              addGameButton(controls, String(number), { type: "number", value: number });
+            }
+          }
+        } else if ((state.phase === "reveal" || state.phase === "end") && state.result) {
+          const result = state.result;
+          status.textContent = result.numbers[0] + " + " + result.numbers[1] +
+            " = " + result.sum + " · Deu " +
+            (result.parity === "par" ? "Par" : "Ímpar") + ".";
+          if (state.phase === "end") {
+            const final = document.createElement("p");
+            final.className = "room-note";
+            final.textContent = state.winner === state.myIndex ? "Você venceu!" : "Seu oponente venceu.";
+            mount.appendChild(final);
+          }
+        }
+      }
+
+      document.querySelectorAll("[data-mode]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const mode = button.dataset.mode;
+          if (mode !== "invite") {
+            toast("Sala pública e modo contra a máquina ainda não estão conectados.");
+            return;
+          }
+
+          const name = $id("lobby-player").textContent.trim();
+          const gameName = $id("selected-title").textContent.trim();
+          const game = gameIds[gameName];
+
+          if (!name || !game) {
+            toast("Informe seu nome e selecione um jogo.");
+            return;
+          }
+
+          $id("live-room-panel").classList.add("hidden");
+          $id("live-game-panel").classList.add("hidden");
+          send({ t: "createPrivate", name, game });
+        });
+      });
+
+      $id("name-form").addEventListener("submit", (event) => {
+        if (!inviteFromUrl) return;
+        event.preventDefault();
+
+        const name = $id("player-name").value.trim().slice(0, 16);
+        if (!name) {
+          $id("name-error").textContent = "Digite seu nome para entrar na sala.";
+          return;
+        }
+
+        $id("name-error").textContent = "";
+        $id("lobby-player").textContent = name;
+        $id("welcome-name").textContent = name;
+        showLobby();
+        send({
+          t: "joinPrivate",
+          name,
+          game: inviteFromUrl.game,
+          code: inviteFromUrl.room
+        });
+      });
+
+      $id("start-game-button").addEventListener("click", () => send({ t: "start" }));
+      $id("whatsapp-invite").addEventListener("click", shareRoom);
+      $id("live-whatsapp-button").addEventListener("click", shareRoom);
+
+      $id("copy-code").addEventListener("click", async () => {
+        if (!activeRoom) return;
+        try {
+          await navigator.clipboard.writeText(activeRoom.code);
+          toast("Código da sala copiado.");
+        } catch {
+          $id("invite-code").select();
+          document.execCommand("copy");
+          toast("Código da sala copiado.");
+        }
+      });
+
+      const params = new URLSearchParams(location.search);
+      const roomCode = params.get("room");
+      const gameId = params.get("game");
+
+      if (roomCode && gameId && Object.values(gameIds).includes(gameId)) {
+        inviteFromUrl = { room: roomCode.toUpperCase(), game: gameId };
+        $id("hero-copy").textContent = "Você recebeu um convite. Informe seu nome para entrar diretamente na sala.";
+      }
+
+      connect();
+    })();
   </script>
 </body>
 </html>
