@@ -6,750 +6,430 @@
   <meta name="theme-color" content="#0f172a">
   <title>Diversão com os amigos</title>
   <style>
-    :root {
-      color-scheme: dark;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #020617;
-      color: #f8fafc;
-    }
-
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #020617; color: #f8fafc; }
     * { box-sizing: border-box; }
-
-    body {
-      min-height: 100vh;
-      margin: 0;
-      display: grid;
-      place-items: center;
-      padding: 24px 16px;
-      background:
-        radial-gradient(ellipse at top, rgba(139, 92, 246, .17), transparent 55%),
-        #020617;
-    }
-
-    main { width: min(100%, 760px); }
-
-    header { text-align: center; margin-bottom: 28px; }
-
-    .logo {
-      display: grid;
-      place-items: center;
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 14px;
-      border-radius: 20px;
-      background: rgba(139, 92, 246, .16);
-      font-size: 32px;
-    }
-
-    .eyebrow {
-      color: #c4b5fd;
-      font-size: .78rem;
-      font-weight: 800;
-      letter-spacing: .2em;
-      text-transform: uppercase;
-    }
-
-    h1 { margin: 8px 0; font-size: clamp(2rem, 6vw, 3rem); }
-    h2 { margin: 8px 0; font-size: 1.6rem; }
+    body { margin: 0; min-height: 100vh; padding: 20px 14px; background: radial-gradient(ellipse at top, #312e8155, #020617 55%); }
+    main { width: min(100%, 760px); margin: 0 auto; }
+    header, .center { text-align: center; }
+    .panel { padding: 22px; border: 1px solid #ffffff20; border-radius: 22px; background: #0f172a; margin: 14px 0; }
+    h1 { margin: 8px 0; font-size: clamp(2rem, 7vw, 3rem); }
+    h2 { margin: 8px 0; }
     p { line-height: 1.5; }
-
     .muted { color: #94a3b8; }
-
-    .panel {
-      padding: clamp(20px, 5vw, 32px);
-      border: 1px solid rgba(255, 255, 255, .1);
-      border-radius: 24px;
-      background: #0f172a;
-      box-shadow: 0 24px 70px rgba(0, 0, 0, .3);
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-
-    input {
-      width: 100%;
-      padding: 15px 16px;
-      border: 1px solid rgba(255, 255, 255, .14);
-      border-radius: 14px;
-      background: #020617;
-      color: #fff;
-      font: inherit;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: #a78bfa;
-      box-shadow: 0 0 0 3px rgba(167, 139, 250, .18);
-    }
-
-    button {
-      border: 0;
-      border-radius: 14px;
-      cursor: pointer;
-      font: inherit;
-      font-weight: 800;
-      transition: transform .15s ease, background .15s ease, border-color .15s ease;
-    }
-
-    button:active { transform: scale(.99); }
-
-    .primary {
-      width: 100%;
-      margin-top: 14px;
-      padding: 15px 18px;
-      background: #8b5cf6;
-      color: #fff;
-    }
-
-    .primary:hover { background: #7c3aed; }
-    .primary:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
-
-    .secondary {
-      padding: 10px 13px;
-      border: 1px solid rgba(255, 255, 255, .14);
-      background: transparent;
-      color: #cbd5e1;
-    }
-
-    .secondary:hover { background: rgba(255, 255, 255, .06); }
-
-    .top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-
-    .game-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .game-card {
-      min-height: 160px;
-      padding: 18px;
-      border: 1px solid rgba(255, 255, 255, .1);
-      border-radius: 18px;
-      background: #0f172a;
-      color: #fff;
-      text-align: left;
-    }
-
-    .game-card:hover, .game-card.selected {
-      border-color: #a78bfa;
-      background: #1e293b;
-    }
-
-    .game-card.selected { box-shadow: 0 0 0 2px #a78bfa; }
-
-    .game-icon { font-size: 26px; }
-    .game-card h3 { margin: 14px 0 4px; font-size: 1.1rem; }
-    .players { margin: 0; color: #c4b5fd; font-size: .9rem; font-weight: 800; }
-    .description { margin: 8px 0 0; color: #94a3b8; font-size: .9rem; }
-
-    .notice {
-      margin-top: 16px;
-      padding: 14px;
-      border: 1px solid rgba(167, 139, 250, .25);
-      border-radius: 14px;
-      background: rgba(139, 92, 246, .1);
-      color: #ede9fe;
-    }
-
-    .room-code {
-      margin: 8px 0 0;
-      font-size: 1.8rem;
-      font-weight: 900;
-      letter-spacing: .2em;
-    }
-
-    .waiting {
-      padding: 16px;
-      border: 1px solid rgba(251, 191, 36, .25);
-      border-radius: 16px;
-      background: rgba(251, 191, 36, .08);
-      color: #fef3c7;
-    }
-
+    input, button { width: 100%; border-radius: 13px; padding: 13px 15px; font: inherit; }
+    input { color: white; background: #020617; border: 1px solid #ffffff25; }
+    button { border: 0; cursor: pointer; font-weight: 750; color: white; background: #7c3aed; margin-top: 8px; }
+    button.secondary { background: #1e293b; border: 1px solid #ffffff20; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .game-card { padding: 16px; min-height: 115px; text-align: left; background: #111c31; border: 1px solid #ffffff20; }
+    .game-card.selected { outline: 2px solid #a78bfa; background: #252044; }
     .hidden { display: none !important; }
-
-    footer {
-      margin-top: 22px;
-      color: #64748b;
-      font-size: .8rem;
-      text-align: center;
-    }
-
-    @media (max-width: 560px) {
-      .game-grid { grid-template-columns: 1fr; }
-      .game-card { min-height: 135px; }
-      .top-row { align-items: flex-start; }
-    }
+    .room-player { padding: 10px 12px; border-radius: 10px; background: #020617; margin: 6px 0; }
+    .notice { padding: 12px; border-radius: 12px; background: #312e81; margin: 10px 0; }
+    .answers { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: center; }
+    .keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .keyboard button { padding: 10px 2px; margin: 0; }
+    .word { font-size: clamp(1.4rem, 7vw, 2.3rem); letter-spacing: .25em; text-align: center; overflow-wrap: anywhere; }
+    .hangman { font-size: 1.2rem; line-height: 1.8; }
+    @media (max-width: 460px) { .answers { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <div class="logo" aria-hidden="true">🎮</div>
-      <div class="eyebrow">Diversão com os amigos</div>
-      <h1>Escolha sua diversão</h1>
-      <p class="muted">Entre com seu nome e escolha o jogo da vez.</p>
-    </header>
+<main>
+  <header>
+    <div aria-hidden="true" style="font-size:2.5rem">🎮</div>
+    <p class="muted">DIVERSÃO COM OS AMIGOS</p>
+    <h1>Escolha sua diversão</h1>
+  </header>
 
-    <section id="name-screen" class="panel">
-      <div class="eyebrow">Etapa 1 de 2</div>
-      <h2>Como devemos chamar você?</h2>
-      <p class="muted">Seu nome aparecerá para os outros jogadores.</p>
-      <form id="name-form">
-        <label for="player-name">Seu nome</label>
-        <input id="player-name" maxlength="16" autocomplete="nickname"
-          placeholder="Digite seu nome" required>
-        <button class="primary" type="submit">Continuar para os jogos →</button>
+  <section id="entry" class="panel">
+    <label for="name">Seu nome</label>
+    <input id="name" maxlength="16" placeholder="Digite seu nome" autocomplete="nickname">
+    <p id="error" class="muted" role="status"></p>
+    <h2>Selecione um jogo</h2>
+    <div id="games" class="grid"></div>
+    <div id="entryActions" class="hidden">
+      <button id="publicBtn">Entrar em sala pública</button>
+      <button id="soloBtn" class="secondary">Jogar contra a máquina</button>
+      <button id="privateBtn" class="secondary">Criar sala privada e convidar</button>
+      <div id="publicRoomList"></div>
+      <form id="codeForm">
+        <label for="code">Entrar em sala privada com código</label>
+        <input id="code" maxlength="6" placeholder="Código do convite">
+        <button class="secondary" type="submit">Entrar na sala</button>
       </form>
-    </section>
+    </div>
+  </section>
 
-    <section id="games-screen" class="hidden">
-      <div class="top-row">
-        <div>
-          <div class="eyebrow">Etapa 2 de 2</div>
-          <h2>Qual jogo você quer?</h2>
-          <p class="muted">Olá, <strong id="welcome-name"></strong>! Selecione uma opção.</p>
-        </div>
-        <button id="change-name" class="secondary" type="button">Trocar nome</button>
-      </div>
+  <section id="lobby" class="panel hidden">
+    <p class="muted" id="roomLabel"></p>
+    <h2 id="roomTitle">Sala</h2>
+    <div id="players"></div>
+    <p id="roomStatus" class="notice"></p>
+    <button id="completeBotsBtn" class="hidden">Completar com Bots (NPCs)</button>
+    <button id="startBtn" class="hidden">Iniciar partida</button>
+    <button id="shareBtn" class="secondary hidden">Compartilhar convite</button>
+    <button id="backBtn" class="secondary">Sair da sala</button>
+  </section>
 
-      <div id="game-list" class="game-grid"></div>
-      <div id="selection-message" class="notice hidden" role="status"></div>
-      <button id="choose-game" class="primary" type="button" disabled>
-        Escolha um jogo para continuar
-      </button>
-      <p class="muted" style="text-align:center;font-size:.82rem">
-        As regras e a dinâmica dos demais jogos serão adicionadas depois.
-      </p>
-    </section>
+  <section id="game" class="panel hidden">
+    <div id="gameMount"></div>
+    <button id="leaveGameBtn" class="secondary">Voltar ao lobby</button>
+  </section>
+</main>
 
-    <section id="room-screen" class="panel hidden">
-      <div class="eyebrow" id="room-kind">Sala pública</div>
-      <h2><span id="room-game-name"></span> <span class="muted">· <span id="room-game-players"></span></span></h2>
-      <p class="muted">Olá, <strong id="room-player-name"></strong>.</p>
+<script>
+"use strict";
 
-      <div class="waiting">
-        <strong id="room-live-status">Conectando à sala...</strong>
-        <p id="room-help" style="margin-bottom:0">Esta é a sala pública. Para jogar em particular, crie uma sala e envie o convite.</p>
-      </div>
+const gameCatalog = [
+  { name: "Par ou Ímpar", icon: "🪙", description: "Escolham números de 1 a 9; vence o resultado da soma." },
+  { name: "Jokenpô", icon: "✊", description: "Pedra, papel e tesoura." },
+  { name: "Detetive", icon: "🕵️", description: "Investigue o mistério em grupo." },
+  { name: "Jogo da Forca", icon: "🔤", description: "Adivinhe a palavra com seu grupo." },
+  { name: "Stop", icon: "📝", description: "Preencha as categorias antes dos outros." }
+];
 
-      <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
-        <div class="eyebrow">Jogadores nesta sala</div>
-        <ul id="room-player-list" style="margin:10px 0 0;padding-left:20px"></ul>
-      </div>
+const $ = (id) => document.getElementById(id);
+let socket;
+let playerName = "";
+let selectedGame = "";
+let currentRoom = null;
+let lastGameState = null;
 
-      <div id="parity-game" class="panel hidden" style="margin-top:14px;padding:16px;background:#020617">
-        <div class="eyebrow">Par ou Ímpar</div>
-        <p id="parity-game-status" style="margin:8px 0 12px" aria-live="polite">Aguardando jogadores...</p>
-        <p id="parity-score" class="notice hidden" style="margin:8px 0 12px" aria-live="polite"></p>
+function showError(text) {
+  $("error").textContent = text || "";
+}
 
-        <button id="start-npc-game" class="primary hidden" type="button" style="margin-top:0">
-          Desafiar a máquina
-        </button>
+function connect() {
+  const protocol = location.protocol === "https:" ? "wss://" : "ws://";
+  socket = new WebSocket(protocol + location.host + "/ws");
 
-        <div id="parity-controls" class="hidden" style="margin-top:12px">
-          <p id="parity-role" class="muted" style="margin:0 0 10px"></p>
-          <div id="parity-number-buttons" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-            <button class="secondary" type="button" data-parity-number="1">01</button>
-            <button class="secondary" type="button" data-parity-number="2">02</button>
-            <button class="secondary" type="button" data-parity-number="3">03</button>
-            <button class="secondary" type="button" data-parity-number="4">04</button>
-            <button class="secondary" type="button" data-parity-number="5">05</button>
-            <button class="secondary" type="button" data-parity-number="6">06</button>
-            <button class="secondary" type="button" data-parity-number="7">07</button>
-            <button class="secondary" type="button" data-parity-number="8">08</button>
-            <button class="secondary" type="button" data-parity-number="9">09</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="private-code-panel" class="panel hidden" style="margin-top:14px;padding:16px;background:#020617">
-        <div class="eyebrow">Código da sala particular</div>
-        <div id="room-code" class="room-code"></div>
-      </div>
-
-      <form id="join-code-form" style="margin-top:14px">
-        <label for="private-room-code">Entrar em uma sala particular</label>
-        <input id="private-room-code" maxlength="6" autocomplete="off" placeholder="Digite o código"
-          style="width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#020617;color:#fff;font:inherit;text-transform:uppercase">
-        <button class="secondary" type="submit" style="width:100%;margin-top:8px">Entrar com código</button>
-      </form>
-
-      <button id="invite-friend" class="primary" type="button" disabled>
-        Criar sala particular e convidar
-      </button>
-      <p id="invite-status" class="notice hidden" role="status"></p>
-      <p id="invite-help" class="muted" style="text-align:center;font-size:.82rem">
-        Ao criar a sala particular, você poderá compartilhar o link ou o código com seu amigo.
-      </p>
-      <button id="back-to-games" class="secondary" type="button" style="width:100%;margin-top:8px">
-        Voltar à seleção de jogos
-      </button>
-    </section>
-
-    <footer>Uma sala, vários jogos, muita diversão.</footer>
-  </main>
-
-  <script>
-    const games = [
-      { name: "Par ou Ímpar", players: "1x1", icon: "🪙", description: "Desafie outro jogador neste clássico." },
-      { name: "Jokenpô", players: "2 a 6 jogadores", icon: "✊", description: "Pedra, papel e tesoura em grupo." },
-      { name: "Detetive", players: "8 a 10 jogadores", icon: "🕵️", description: "Investigue e descubra o mistério." },
-      { name: "Jogo da Forca", players: "1 a 4 jogadores", icon: "🔤", description: "Adivinhe a palavra antes que o tempo acabe." },
-      { name: "Stop", players: "2 a 10 jogadores", icon: "📝", description: "Pense rápido e complete as categorias." }
-    ];
-
-    const nameScreen = document.getElementById("name-screen");
-    const gamesScreen = document.getElementById("games-screen");
-    const roomScreen = document.getElementById("room-screen");
-    const nameInput = document.getElementById("player-name");
-    const welcomeName = document.getElementById("welcome-name");
-    const chooseButton = document.getElementById("choose-game");
-    const selectionMessage = document.getElementById("selection-message");
-    const gameList = document.getElementById("game-list");
-
-    let playerName = "";
-    let selectedGame = "";
-    let roomCode = "";
-    let roomGame = "";
-    let roomMode = "create";
-    let roomSocket = null;
-    let roomReady = false;
-    let npcGameActive = false;
-    let parityStartRequested = false;
-    let paritySubmitted = false;
-    let parityLastRound = 0;
-    let parityScoreHost = 0;
-    let parityScoreGuest = 0;
-
-    const inviteParams = new URLSearchParams(window.location.search);
-    const invitedRoom = inviteParams.get("sala");
-    const invitedGame = inviteParams.get("jogo");
-
-    function openRoom(gameName, code, mode = "public") {
-      const game = games.find((item) => item.name === gameName);
-      if (!game || (mode === "join" && !code)) return;
-
-      if (roomSocket) {
-        roomSocket.onclose = null;
-        roomSocket.close();
-      }
-
-      roomGame = game.name;
-      roomCode = code || "";
-      roomMode = mode;
-      roomReady = false;
-      npcGameActive = false;
-      parityStartRequested = false;
-      paritySubmitted = false;
-      parityLastRound = 0;
-      parityScoreHost = 0;
-      parityScoreGuest = 0;
-      document.getElementById("parity-game").classList.add("hidden");
-      document.getElementById("start-npc-game").classList.add("hidden");
-      document.getElementById("parity-controls").classList.add("hidden");
-      document.getElementById("parity-score").classList.add("hidden");
-
-      document.getElementById("room-game-name").textContent = game.name;
-      document.getElementById("room-game-players").textContent = game.players;
-      document.getElementById("room-player-name").textContent = playerName;
-      document.getElementById("room-live-status").textContent = "Conectando à sala...";
-      document.getElementById("room-player-list").replaceChildren();
-      document.getElementById("private-code-panel").classList.add("hidden");
-      document.getElementById("join-code-form").classList.remove("hidden");
-      document.getElementById("invite-status").classList.add("hidden");
-      document.getElementById("invite-friend").disabled = true;
-      document.getElementById("invite-friend").style.opacity = ".55";
-
-      nameScreen.classList.add("hidden");
-      gamesScreen.classList.add("hidden");
-      roomScreen.classList.remove("hidden");
-
-      if (window.location.protocol === "file:") {
-        document.getElementById("room-live-status").textContent =
-          "Abra o jogo pelo endereço HTTPS do Render para conectar à sala.";
-        return;
-      }
-
-      const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
-      try {
-        roomSocket = new WebSocket(wsProtocol + window.location.host + "/ws");
-      } catch {
-        document.getElementById("room-live-status").textContent = "Não foi possível conectar ao servidor.";
-        return;
-      }
-
-      roomSocket.onopen = () => {
-        const message = roomMode === "join"
-          ? { t: "join", name: playerName, code: roomCode }
-          : { t: "public", name: playerName, game: roomGame };
-        roomSocket.send(JSON.stringify(message));
-      };
-
-      roomSocket.onmessage = (event) => {
-        let message;
-        try {
-          message = JSON.parse(event.data);
-        } catch {
-          return;
-        }
-
-        if (message.t === "error") {
-          document.getElementById("room-live-status").textContent = message.message;
-          return;
-        }
-
-        if (message.t === "gameActions" && message.game === "Par ou Ímpar") {
-          handleParityActions(message);
-          return;
-        }
-
-        if (message.t !== "state" || !message.room) return;
-
-        roomCode = message.room.code || "";
-        roomGame = message.room.game;
-        roomMode = message.room.private ? "private" : "public";
-
-        document.getElementById("room-kind").textContent =
-          roomMode === "private" ? "Sala particular" : "Sala pública";
-        document.getElementById("room-help").textContent =
-          roomMode === "private"
-            ? "Você está na sala particular. Compartilhe o link ou o código com quem vai jogar."
-            : "Esta é a sala pública. Para jogar em particular, crie uma sala e envie o convite.";
-        document.getElementById("private-code-panel").classList.toggle("hidden", roomMode !== "private");
-        document.getElementById("join-code-form").classList.toggle("hidden", roomMode !== "public");
-        document.getElementById("room-code").textContent = roomCode;
-        document.getElementById("room-live-status").textContent =
-          "Conectado · " + message.room.players.length + " jogador(es) nesta sala";
-
-        if (roomGame === "Par ou Ímpar") {
-          const playerCount = message.room.players.length;
-          const parityPanel = document.getElementById("parity-game");
-          const parityStatus = document.getElementById("parity-game-status");
-          const npcButton = document.getElementById("start-npc-game");
-          const parityControls = document.getElementById("parity-controls");
-          const parityScore = document.getElementById("parity-score");
-          const me = message.room.players.find((player) => player.name === playerName);
-
-          parityPanel.classList.remove("hidden");
-
-          if (playerCount === 2 && !message.room.started && me && me.host && !parityStartRequested) {
-            parityStartRequested = true;
-            roomSocket.send(JSON.stringify({ t: "start" }));
-          }
-
-          if (playerCount === 1 && !npcGameActive) {
-            parityStatus.textContent = "Você está sozinho na sala. Desafie a máquina para jogar.";
-            npcButton.classList.remove("hidden");
-            parityControls.classList.add("hidden");
-            parityScore.classList.add("hidden");
-          } else if (playerCount === 2 && message.room.started) {
-            parityStatus.textContent = paritySubmitted
-              ? "Número enviado. Aguardando o outro jogador..."
-              : "Partida iniciada! Escolha seu número de 01 a 09.";
-            npcButton.classList.add("hidden");
-            parityControls.classList.remove("hidden");
-            parityScore.classList.remove("hidden");
-            document.getElementById("parity-role").textContent =
-              me && me.host ? "Você joga como Par." : "Você joga como Ímpar.";
-            document.getElementById("parity-score").textContent =
-              "Placar — Par: " + parityScoreHost + " · Ímpar: " + parityScoreGuest;
-          } else if (playerCount > 2) {
-            parityStatus.textContent = "Par ou Ímpar é uma partida para exatamente dois jogadores.";
-            npcButton.classList.add("hidden");
-            parityControls.classList.add("hidden");
-          } else if (npcGameActive) {
-            parityStatus.textContent = "Partida contra a máquina. Escolha seu número de 01 a 09.";
-            npcButton.classList.add("hidden");
-            parityControls.classList.remove("hidden");
-          }
-        }
-
-        const inviteButton = document.getElementById("invite-friend");
-        inviteButton.textContent = roomMode === "public"
-          ? "Criar sala particular e convidar"
-          : "Compartilhar convite da sala ↗";
-        document.getElementById("invite-help").textContent = roomMode === "public"
-          ? "A sala particular será criada quando você tocar no botão acima."
-          : "Compartilhe o link ou envie o código " + roomCode + " para seu amigo.";
-
-        const list = document.getElementById("room-player-list");
-        list.replaceChildren();
-        message.room.players.forEach((player) => {
-          const item = document.createElement("li");
-          item.textContent = player.name + (player.host ? " · anfitrião" : "");
-          list.appendChild(item);
-        });
-
-        roomReady = true;
-        inviteButton.disabled = false;
-        inviteButton.style.opacity = "1";
-      };
-
-      roomSocket.onerror = () => {
-        document.getElementById("room-live-status").textContent =
-          "Falha na conexão. Confira se o server.js atualizado está no Render.";
-      };
-
-      roomSocket.onclose = () => {
-        roomReady = false;
-        document.getElementById("invite-friend").disabled = true;
-        document.getElementById("invite-friend").style.opacity = ".55";
-        if (!document.getElementById("room-screen").classList.contains("hidden")) {
-          document.getElementById("room-live-status").textContent = "Conexão com a sala encerrada.";
-        }
-      };
-    }
-
-    function handleParityActions(message) {
-      if (!message.actions || message.actions.length !== 2 || message.round <= parityLastRound) return;
-
-      parityLastRound = message.round;
-      paritySubmitted = false;
-
-      const hostAction = message.actions.find((item) => item.host);
-      const guestAction = message.actions.find((item) => !item.host);
-      if (!hostAction || !guestAction) return;
-
-      const hostNumber = Number(hostAction.action.number);
-      const guestNumber = Number(guestAction.action.number);
-      if (!Number.isInteger(hostNumber) || !Number.isInteger(guestNumber)) return;
-
-      const sum = hostNumber + guestNumber;
-      const even = sum % 2 === 0;
-      if (even) parityScoreHost += 1;
-      else parityScoreGuest += 1;
-
-      document.getElementById("parity-score").textContent =
-        "Placar — Par: " + parityScoreHost + " · Ímpar: " + parityScoreGuest;
-      document.getElementById("parity-game-status").textContent =
-        "Rodada " + message.round + ": " + hostAction.name + " escolheu " +
-        String(hostNumber).padStart(2, "0") + " e " + guestAction.name +
-        " escolheu " + String(guestNumber).padStart(2, "0") + ". Soma: " +
-        sum + ". Deu " + (even ? "Par — ponto para Par!" : "Ímpar — ponto para Ímpar!");
-
-      window.setTimeout(() => {
-        paritySubmitted = false;
-        document.querySelectorAll("[data-parity-number]").forEach((button) => {
-          button.disabled = false;
-        });
-        document.getElementById("parity-game-status").textContent =
-          "Escolha seu número de 01 a 09.";
-      }, 2200);
-    }
-
-    function renderGames() {
-      games.forEach((game) => {
-        const card = document.createElement("button");
-        card.type = "button";
-        card.className = "game-card";
-        card.dataset.game = game.name;
-
-        const icon = document.createElement("span");
-        icon.className = "game-icon";
-        icon.textContent = game.icon;
-
-        const title = document.createElement("h3");
-        title.textContent = game.name;
-
-        const players = document.createElement("p");
-        players.className = "players";
-        players.textContent = game.players;
-
-        const description = document.createElement("p");
-        description.className = "description";
-        description.textContent = game.description;
-
-        card.append(icon, title, players, description);
-        card.addEventListener("click", () => selectGame(game.name, card));
-        gameList.appendChild(card);
-      });
-    }
-
-    function selectGame(name, selectedCard) {
+  socket.addEventListener("open", () => {
+    const inviteCode = new URLSearchParams(location.search).get("sala");
+    const inviteGame = new URLSearchParams(location.search).get("jogo");
+    if (inviteCode && inviteGame && gameCatalog.some((item) => item.name === inviteGame)) {
+      selectedGame = inviteGame;
       document.querySelectorAll(".game-card").forEach((card) => {
-        card.classList.remove("selected");
+        card.classList.toggle("selected", card.dataset.game === inviteGame);
       });
-
-      selectedCard.classList.add("selected");
-      selectedGame = name;
-      chooseButton.disabled = false;
-      chooseButton.textContent = "Continuar com " + name;
-      selectionMessage.classList.add("hidden");
+      $("entryActions").classList.remove("hidden");
+      showError("Convite detectado. Digite seu nome e entre diretamente na sala.");
     }
+  });
 
-    document.getElementById("name-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      playerName = nameInput.value.trim();
+  socket.addEventListener("message", (event) => {
+    let message;
+    try { message = JSON.parse(event.data); } catch { return; }
 
-      if (!playerName) {
-        nameInput.focus();
-        return;
+    if (message.t === "error") {
+      showError(message.message);
+    } else if (message.t === "publicRooms") {
+      renderPublicRooms(message.rooms || []);
+    } else if (message.t === "room") {
+      currentRoom = message.room;
+      renderRoom();
+      if (currentRoom.started) renderGame();
+      else {
+        $("lobby").classList.remove("hidden");
+        $("game").classList.add("hidden");
       }
+    }
+  });
+}
+connect();
 
-      welcomeName.textContent = playerName;
+function send(message) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(message));
+  } else {
+    showError("Conectando ao servidor. Tente novamente em instantes.");
+  }
+}
 
-      if (invitedRoom && invitedGame && games.some((game) => game.name === invitedGame)) {
-        openRoom(invitedGame, invitedRoom, "join");
-        return;
-      }
-
-      nameScreen.classList.add("hidden");
-      gamesScreen.classList.remove("hidden");
+function renderCatalog() {
+  const root = $("games");
+  gameCatalog.forEach((game) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "game-card";
+    button.dataset.game = game.name;
+    button.innerHTML = "<strong>" + game.icon + " " + game.name + "</strong><br><span class=\"muted\">" + game.description + "</span>";
+    button.addEventListener("click", () => {
+      selectedGame = game.name;
+      document.querySelectorAll(".game-card").forEach((card) => card.classList.remove("selected"));
+      button.classList.add("selected");
+      $("entryActions").classList.remove("hidden");
+      send({ t: "publicRooms", game: selectedGame });
+      showError("");
     });
+    root.appendChild(button);
+  });
+}
+renderCatalog();
 
-    document.getElementById("change-name").addEventListener("click", () => {
-      gamesScreen.classList.add("hidden");
-      nameScreen.classList.remove("hidden");
-      nameInput.focus();
+function selectedName() {
+  playerName = $("name").value.trim();
+  if (!playerName) {
+    showError("Digite seu nome para continuar.");
+    $("name").focus();
+    return false;
+  }
+  if (!selectedGame) {
+    showError("Selecione um jogo.");
+    return false;
+  }
+  return true;
+}
+
+$("publicBtn").addEventListener("click", () => {
+  if (selectedName()) send({ t: "joinPublic", name: playerName, game: selectedGame });
+});
+
+$("soloBtn").addEventListener("click", () => {
+  if (!selectedName()) return;
+  send({ t: "createPrivate", name: playerName, game: selectedGame });
+  showError("Criando partida solo. Quando a sala abrir, use “Completar com Bots (NPCs)” e inicie.");
+});
+
+$("privateBtn").addEventListener("click", () => {
+  if (selectedName()) send({ t: "createPrivate", name: playerName, game: selectedGame });
+});
+
+$("codeForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!selectedName()) return;
+  const code = $("code").value.trim().toUpperCase();
+  if (!code) return showError("Digite o código da sala.");
+  send({ t: "joinPrivate", name: playerName, code });
+});
+
+function renderPublicRooms(rooms) {
+  const root = $("publicRoomList");
+  root.replaceChildren();
+  if (!rooms.length) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = "Nenhuma sala pública aberta agora. Ao entrar, você será colocado em uma sala de matchmaking.";
+    root.appendChild(note);
+    return;
+  }
+
+  const title = document.createElement("p");
+  title.textContent = "Salas públicas disponíveis:";
+  root.appendChild(title);
+
+  rooms.forEach((room) => {
+    const button = document.createElement("button");
+    button.className = "secondary";
+    button.type = "button";
+    button.textContent = room.players.join(", ") + " · código " + room.code;
+    button.addEventListener("click", () => {
+      if (selectedName()) send({ t: "joinPublic", name: playerName, game: selectedGame });
     });
+    root.appendChild(button);
+  });
+}
 
-    chooseButton.addEventListener("click", () => {
-      if (!selectedGame) return;
+function renderRoom() {
+  const room = currentRoom;
+  if (!room) return;
 
-      openRoom(selectedGame, "", "public");
-    });
+  $("entry").classList.add("hidden");
+  $("lobby").classList.remove("hidden");
+  $("game").classList.add("hidden");
+  $("roomTitle").textContent = room.game;
+  $("roomLabel").textContent = (room.mode === "private" ? "Sala privada" : "Sala pública") + " · Código: " + room.code;
 
-    document.getElementById("invite-friend").addEventListener("click", async () => {
-      const status = document.getElementById("invite-status");
+  const list = $("players");
+  list.replaceChildren();
+  room.players.forEach((player) => {
+    const item = document.createElement("div");
+    item.className = "room-player";
+    item.textContent = player.name + (player.host ? " · anfitrião" : "") + (player.bot ? " · NPC" : "");
+    list.appendChild(item);
+  });
 
-      if (!roomReady || !roomSocket || roomSocket.readyState !== WebSocket.OPEN) {
-        status.textContent = "Aguarde a conexão com a sala.";
-        status.classList.remove("hidden");
+  const isHost = room.players.some((player) => player.host && !player.bot && player.name === playerName);
+  const botCount = room.players.filter((player) => player.bot).length;
+  const missing = Math.max(0, room.minPlayers - room.players.length);
+
+  $("roomStatus").textContent = room.started
+    ? "Partida iniciada."
+    : "Jogadores: " + room.players.length + "/" + room.maxPlayers +
+      " · mínimo para iniciar: " + room.minPlayers +
+      (missing ? " · faltam " + missing + " vaga(s)." : " · partida pronta para iniciar.");
+
+  $("completeBotsBtn").classList.toggle("hidden", room.started || !isHost || missing === 0);
+  $("startBtn").classList.toggle("hidden", room.started || !isHost || room.players.length < room.minPlayers);
+  $("shareBtn").classList.toggle("hidden", room.mode !== "private");
+  $("completeBotsBtn").textContent = "Completar com Bots (NPCs)" + (botCount ? " · " + botCount + " adicionado(s)" : "");
+}
+
+$("completeBotsBtn").addEventListener("click", () => send({ t: "completeWithBots" }));
+$("startBtn").addEventListener("click", () => send({ t: "start" }));
+$("shareBtn").addEventListener("click", async () => {
+  if (!currentRoom) return;
+  const url = new URL(location.href);
+  url.searchParams.set("sala", currentRoom.code);
+  url.searchParams.set("jogo", currentRoom.game);
+  const text = "Vamos jogar " + currentRoom.game + "? Entre direto na minha sala: " + url.toString();
+  try {
+    if (navigator.share) await navigator.share({ title: "Convite para jogar", text, url: url.toString() });
+    else await navigator.clipboard.writeText(text);
+  } catch {
+    showError("Não foi possível compartilhar automaticamente. Código da sala: " + currentRoom.code);
+  }
+});
+$("backBtn").addEventListener("click", () => {
+  send({ t: "leave" });
+  currentRoom = null;
+  $("lobby").classList.add("hidden");
+  $("game").classList.add("hidden");
+  $("entry").classList.remove("hidden");
+});
+$("leaveGameBtn").addEventListener("click", () => {
+  $("game").classList.add("hidden");
+  $("lobby").classList.remove("hidden");
+});
+
+/* Contrato modular: cada módulo só renderiza seu próprio jogo e envia suas ações. */
+window.GameModules = {
+  "Jogo da Forca": {
+    render(root, room, sendAction) {
+      const state = room.gameState;
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const masked = [...state.word].map((letter) => state.guessed.includes(letter) ? letter : "_").join(" ");
+      const active = room.players[state.turn];
+
+      root.innerHTML =
+        "<h2>Jogo da Forca</h2>" +
+        "<p class=\"muted\">Vez de: " + (active ? active.name : "—") + "</p>" +
+        "<p class=\"hangman\">Erros: " + state.mistakes + "/" + state.maxMistakes + "</p>" +
+        "<p class=\"word\">" + masked + "</p>" +
+        "<p class=\"muted\">Letras tentadas: " + (state.guessed.join(", ") || "nenhuma") + "</p>";
+
+      if (state.phase === "result") {
+        const result = document.createElement("p");
+        result.className = "notice";
+        result.textContent = state.result.message + " Palavra: " + state.result.word;
+        root.appendChild(result);
         return;
       }
 
-      if (roomMode === "public") {
-        roomSocket.send(JSON.stringify({ t: "create", name: playerName, game: roomGame }));
-        status.textContent = "Criando sua sala particular...";
-        status.classList.remove("hidden");
-        return;
-      }
-
-      if (!roomCode) {
-        status.textContent = "O código da sala ainda não está disponível.";
-        status.classList.remove("hidden");
-        return;
-      }
-
-      const inviteUrl = new URL(window.location.href);
-      inviteUrl.searchParams.set("sala", roomCode);
-      inviteUrl.searchParams.set("jogo", roomGame);
-      const message =
-        "Oi! Vamos jogar " + roomGame + "? Abra este link para entrar direto na minha sala: " +
-        inviteUrl.toString() + " (código: " + roomCode + ")";
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "Convite para jogar " + roomGame,
-            text: message,
-            url: inviteUrl.toString()
-          });
-          return;
-        } catch (error) {
-          if (error && error.name === "AbortError") return;
-        }
-      }
-
-      window.open(
-        "https://wa.me/?text=" + encodeURIComponent(message),
-        "_blank",
-        "noopener,noreferrer"
-      );
-    });
-
-    document.getElementById("join-code-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      const code = document.getElementById("private-room-code").value.trim().toUpperCase();
-      if (!code) {
-        document.getElementById("private-room-code").focus();
-        return;
-      }
-      openRoom(roomGame, code, "join");
-    });
-
-    document.getElementById("start-npc-game").addEventListener("click", () => {
-      npcGameActive = true;
-      parityScoreHost = 0;
-      parityScoreGuest = 0;
-      paritySubmitted = false;
-      document.getElementById("parity-game-status").textContent =
-        "Partida contra a máquina. Escolha seu número de 01 a 09.";
-      document.getElementById("parity-score").textContent = "Placar — Você: 0 · Máquina: 0";
-      document.getElementById("parity-score").classList.remove("hidden");
-      document.getElementById("parity-role").textContent =
-        "A máquina escolherá um número aleatório de 01 a 09.";
-      document.getElementById("start-npc-game").classList.add("hidden");
-      document.getElementById("parity-controls").classList.remove("hidden");
-    });
-
-    document.getElementById("parity-number-buttons").addEventListener("click", (event) => {
-      const button = event.target.closest("[data-parity-number]");
-      if (!button || button.disabled || paritySubmitted) return;
-
-      const number = Number(button.dataset.parityNumber);
-      if (roomGame === "Par ou Ímpar" && npcGameActive) {
-        paritySubmitted = true;
-        const machineNumber = Math.floor(Math.random() * 9) + 1;
-        const sum = number + machineNumber;
-        const even = sum % 2 === 0;
-        if (even) parityScoreHost += 1;
-        else parityScoreGuest += 1;
-
-        document.getElementById("parity-score").textContent =
-          "Placar — Você: " + parityScoreHost + " · Máquina: " + parityScoreGuest;
-        document.getElementById("parity-game-status").textContent =
-          "Você escolheu " + String(number).padStart(2, "0") + " e a máquina " +
-          String(machineNumber).padStart(2, "0") + ". Soma: " + sum + ". Deu " +
-          (even ? "Par!" : "Ímpar!");
-
-        window.setTimeout(() => {
-          paritySubmitted = false;
-          document.getElementById("parity-game-status").textContent =
-            "Escolha seu próximo número de 01 a 09.";
-        }, 1800);
-        return;
-      }
-
-      if (!roomSocket || roomSocket.readyState !== WebSocket.OPEN || paritySubmitted) return;
-      paritySubmitted = true;
-      document.querySelectorAll("[data-parity-number]").forEach((item) => {
-        item.disabled = true;
+      const keyboard = document.createElement("div");
+      keyboard.className = "keyboard";
+      letters.forEach((letter) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = letter;
+        button.disabled = state.guessed.includes(letter) || !active || active.name !== playerName;
+        button.addEventListener("click", () => sendAction({ t: "hangmanGuess", letter }));
+        keyboard.appendChild(button);
       });
-      document.getElementById("parity-game-status").textContent =
-        "Número enviado. Aguardando o outro jogador...";
-      roomSocket.send(JSON.stringify({ t: "gameAction", action: { number } }));
-    });
+      root.appendChild(keyboard);
+    }
+  },
 
-    document.getElementById("back-to-games").addEventListener("click", () => {
-      npcGameActive = false;
-      paritySubmitted = false;
-      parityStartRequested = false;
-      if (roomSocket) {
-        roomSocket.onclose = null;
-        if (roomSocket.readyState === WebSocket.OPEN) {
-          roomSocket.send(JSON.stringify({ t: "leave" }));
-        }
-        roomSocket.close();
-        roomSocket = null;
+  "Stop": {
+    render(root, room, sendAction) {
+      const state = room.gameState;
+      root.innerHTML =
+        "<h2>Stop</h2>" +
+        "<p class=\"notice\">Letra da rodada: <strong>" + state.letter + "</strong></p>";
+
+      if (state.phase === "result") {
+        const result = state.result;
+        const summary = document.createElement("div");
+        summary.className = "panel";
+        summary.innerHTML = "<h3>Resultado da rodada</h3>";
+        result.submissions.forEach((entry) => {
+          const row = document.createElement("p");
+          row.textContent = entry.name + (entry.bot ? " (NPC)" : "") + " — " +
+            entry.answers.map((answer) => answer || "—").join(" · ") +
+            " · " + (result.scores[entry.playerId] || 0) + " pontos";
+          summary.appendChild(row);
+        });
+        root.appendChild(summary);
+        return;
       }
-      roomReady = false;
-      roomScreen.classList.add("hidden");
-      gamesScreen.classList.remove("hidden");
-    });
 
-    renderGames();
-  </script>
+      const form = document.createElement("form");
+      form.className = "answers";
+      const fields = [];
+      state.categories.forEach((category) => {
+        const label = document.createElement("label");
+        label.textContent = category;
+        const input = document.createElement("input");
+        input.maxLength = 40;
+        input.required = false;
+        input.placeholder = "Começa com " + state.letter;
+        form.append(label, input);
+        fields.push(input);
+      });
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.textContent = "Enviar respostas";
+      submit.style.gridColumn = "1 / -1";
+      form.appendChild(submit);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        sendAction({ t: "stopSubmit", answers: fields.map((field) => field.value) });
+        submit.disabled = true;
+        submit.textContent = "Respostas enviadas — aguardando a sala";
+      });
+      root.appendChild(form);
+    }
+  },
+
+  "Par ou Ímpar": {
+    render(root, room, sendAction) {
+      const state = room.gameState;
+      root.innerHTML = "<h2>Par ou Ímpar</h2>";
+      if (state.phase === "result") {
+        root.innerHTML += "<p class=\"notice\">Soma: " + state.result.sum + " · Deu " + state.result.parity + "</p>";
+        return;
+      }
+      const form = document.createElement("form");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "1";
+      input.max = "9";
+      input.placeholder = "Escolha um número de 1 a 9";
+      const button = document.createElement("button");
+      button.textContent = "Enviar número";
+      form.append(input, button);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        sendAction({ t: "parityPlay", number: Number(input.value) });
+        button.disabled = true;
+      });
+      root.appendChild(form);
+    }
+  }
+};
+
+function renderGame() {
+  if (!currentRoom || !currentRoom.started) return;
+  $("lobby").classList.add("hidden");
+  $("game").classList.remove("hidden");
+
+  const root = $("gameMount");
+  const module = window.GameModules[currentRoom.game];
+  if (!module) {
+    root.innerHTML = "<h2>" + currentRoom.game + "</h2><p class=\"notice\">O módulo deste jogo ainda precisa ser implementado. O lobby e as salas já estão prontos para receber sua interface.</p>";
+    return;
+  }
+  module.render(root, currentRoom, send);
+}
+
+$("name").addEventListener("input", () => {
+  const inviteCode = new URLSearchParams(location.search).get("sala");
+  if (inviteCode) $("code").value = inviteCode;
+});
+
+const initialCode = new URLSearchParams(location.search).get("sala");
+if (initialCode) $("code").value = initialCode;
+</script>
 </body>
 </html>
