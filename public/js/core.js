@@ -1,68 +1,395 @@
 "use strict";
 
-const GAMES = [
-  { id: "par-ou-impar", name: "Par ou Ímpar", capacity: "2 jogadores", ready: true },
-  { id: "forca", name: "Jogo da Forca", capacity: "2 a 4 jogadores", ready: false },
-  { id: "jokenpo", name: "Jokenpô", capacity: "2 a 6 jogadores", ready: false },
-  { id: "detetive", name: "Detetive", capacity: "4 a 10 jogadores", ready: false },
-  { id: "velha", name: "Jogo da Velha", capacity: "2 jogadores", ready: false },
-  { id: "xadrez", name: "Xadrez", capacity: "2 jogadores", ready: false }
+const games = [
+  { id: "par-ou-impar", name: "Par ou Ímpar", players: "1 × 1", icon: "◉", color: "#9d7aff", description: "O clássico duelo de números." },
+  { id: "forca", name: "Jogo da Forca", players: "1 × 1 · grupo", icon: "⌁", color: "#72e0c0", description: "Descubra a palavra antes das tentativas acabarem." },
+  { id: "jokenpo", name: "Jokenpô", players: "1 × 1", icon: "✊", color: "#ffc578", description: "Pedra, papel e tesoura. Escolha sua jogada." },
+  { id: "detetive", name: "Detetive", players: "4+ jogadores", icon: "⌕", color: "#82b8ff", description: "Descubra quem está por trás do mistério." },
+  { id: "velha", name: "Jogo da Velha", players: "1 × 1", icon: "▦", color: "#ff91a8", description: "Uma disputa rápida de estratégia." },
+  { id: "xadrez", name: "Xadrez", players: "1 × 1", icon: "♞", color: "#d8c4ff", description: "Um duelo de estratégia, movimento a movimento." }
 ];
 
-const $ = (id) => document.getElementById(id);
-
-let socket = null;
 let playerName = "";
 let selectedGame = null;
-let currentRoom = null;
-let currentGameState = null;
-let gameActionHandler = null;
 let toastTimer = null;
+let roomSocket = null;
+let roomCode = "";
+let roomStarted = false;
 
-function showScreen(id) {
-  ["entry-screen", "menu-screen", "lobby-screen", "game-screen"].forEach((screenId) => {
-    $(screenId).classList.toggle("hidden", screenId !== id);
+const byId = (id) => document.getElementById(id);
+const params = new URLSearchParams(window.location.search);
+const inviteCode = params.get("room") || params.get("sala");
+const inviteGameParam = params.get("game") || params.get("jogo");
+
+function setScreen(screen) {
+  document.querySelectorAll(".screen").forEach((item) => {
+    item.classList.remove("active");
   });
-}
 
-function setConnection(connected, text) {
-  $("connection-label").textContent = text;
-  $("connection-dot").style.background = connected ? "#86efac" : "#fda4af";
-  $("game-connection-label").textContent = connected ? "Conectado" : "Desconectado";
-}
+  const target = byId("screen-" + screen);
+  if (target) target.classList.add("active");
 
-function showError(message, target = "lobby-error") {
-  const element = $(target);
-  if (element) element.textContent = message || "";
-}
+  const current = screen === "entry" ? 1 : screen === "games" ? 2 : 3;
 
-function send(message) {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    showError("Sem conexão com o servidor. Atualize a página e tente novamente.");
-    return false;
+  ["step-1", "step-2", "step-3"].forEach((id, index) => {
+    const step = byId(id);
+    if (!step) return;
+    step.classList.toggle("active", index + 1 === current);
+    step.classList.toggle("done", index + 1 < current);
+  });
+
+  const title = byId("hero-title");
+  const copy = byId("hero-copy");
+
+  if (!title || !copy) return;
+
+  if (screen === "entry") {
+    title.innerHTML = "Sua próxima diversão<br>começa aqui.";
+    copy.textContent = "Escolha um nome, encontre seu jogo e chame seus amigos. É só entrar e jogar.";
+  } else if (screen === "games") {
+    title.textContent = "Escolha sua próxima partida.";
+    copy.textContent = "Jogos rápidos para desafiar os amigos ou jogar contra a máquina.";
+  } else {
+    title.textContent = "Sala do jogo";
+    copy.textContent = "Confira quem entrou. A partida começa quando houver jogadores suficientes.";
   }
-
-  socket.send(JSON.stringify(message));
-  return true;
 }
 
-function connect() {
-  const protocol = location.protocol === "https:" ? "wss://" : "ws://";
-
-  try {
-    socket = new WebSocket(protocol + location.host + "/ws");
-  } catch {
-    setConnection(false, "Falha na conexão");
+function showToast(message) {
+  const toast = byId("toast");
+  if (!toast) {
+    console.info(message);
     return;
   }
 
-  window.gameSocket = socket;
+  toast.textContent = message;
+  toast.classList.remove("hidden");
 
-  socket.addEventListener("open", () => {
-    setConnection(true, "Conectado");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.add("hidden"), 3000);
+}
+
+function renderGames() {
+  const grid = byId("games-grid");
+  if (!grid) return;
+
+  grid.replaceChildren();
+
+  games.forEach((game) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "game-card";
+    card.style.setProperty("--game-color", game.color);
+    card.setAttribute("aria-label", game.name + ", " + game.players);
+
+    const icon = document.createElement("span");
+    icon.className = "game-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = game.icon;
+
+    const title = document.createElement("span");
+    title.className = "game-title";
+    title.textContent = game.name;
+
+    const description = document.createElement("span");
+    description.className = "game-description";
+    description.textContent = game.description;
+
+    const meta = document.createElement("span");
+    meta.className = "game-meta";
+    meta.textContent = game.players;
+
+    card.append(icon, title, description, meta);
+    card.addEventListener("click", () => chooseGame(game));
+    grid.appendChild(card);
   });
+}
 
-  socket.addEventListener("message", (event) => {
+function chooseGame(game) {
+  selectedGame = game;
+
+  if (byId("lobby-icon")) {
+    byId("lobby-icon").textContent = game.icon;
+    byId("lobby-icon").style.setProperty("--game-color", game.color);
+  }
+
+  if (byId("selected-title")) {
+    byId("selected-title").textContent = game.name;
+  }
+
+  if (byId("selected-description")) {
+    byId("selected-description").textContent =
+      game.description + " · " + game.players;
+  }
+
+  byId("public-room")?.classList.add("hidden");
+  byId("invite-room")?.classList.add("hidden");
+  byId("lobby-options")?.classList.remove("hidden");
+
+  setScreen("lobby");
+}
+
+function findGame(value) {
+  if (!value) return null;
+
+  const normalized = value.toLocaleLowerCase("pt-BR");
+
+  return games.find((game) =>
+    game.id.toLocaleLowerCase("pt-BR") === normalized ||
+    game.name.toLocaleLowerCase("pt-BR") === normalized
+  ) || null;
+}
+
+function buildRoomPanel() {
+  const panel = byId("invite-room");
+  if (!panel) return;
+
+  panel.replaceChildren();
+
+  const header = document.createElement("div");
+  header.className = "room-header";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Sala particular";
+
+  const status = document.createElement("span");
+  status.className = "room-status";
+  status.id = "room-connection-status";
+  status.textContent = "Conectando...";
+
+  header.append(heading, status);
+
+  const players = document.createElement("div");
+  players.className = "player-list";
+  players.id = "room-players";
+
+  const note = document.createElement("p");
+  note.className = "room-note";
+  note.id = "room-message";
+  note.setAttribute("aria-live", "polite");
+  note.textContent = "Aguardando a conexão com a sala.";
+
+  const inviteRow = document.createElement("div");
+  inviteRow.className = "invite-row";
+
+  const linkInput = document.createElement("input");
+  linkInput.id = "room-invite-link";
+  linkInput.readOnly = true;
+  linkInput.setAttribute("aria-label", "Link do convite");
+  linkInput.placeholder = "O link aparecerá após criar a sala";
+
+  const shareButton = document.createElement("button");
+  shareButton.type = "button";
+  shareButton.id = "share-whatsapp";
+  shareButton.className = "primary";
+  shareButton.textContent = "Enviar pelo WhatsApp";
+  shareButton.disabled = true;
+  shareButton.addEventListener("click", shareWhatsApp);
+
+  inviteRow.append(linkInput, shareButton);
+
+  const copyButton = document.createElement("button");
+  copyButton.type = "button";
+  copyButton.id = "copy-room-link";
+  copyButton.className = "secondary";
+  copyButton.textContent = "Copiar link";
+  copyButton.disabled = true;
+  copyButton.style.width = "100%";
+  copyButton.style.marginTop = "9px";
+  copyButton.addEventListener("click", copyInviteLink);
+
+  const startNote = document.createElement("p");
+  startNote.className = "room-note";
+  startNote.textContent =
+    "A partida começa automaticamente quando entrarem jogadores suficientes.";
+
+  panel.append(header, players, note, inviteRow, copyButton, startNote);
+}
+
+function makeInviteUrl() {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("room", roomCode);
+  url.searchParams.set("game", selectedGame.id);
+  return url.toString();
+}
+
+function shareWhatsApp() {
+  if (!roomCode || !selectedGame) {
+    showToast("Aguarde a criação da sala para compartilhar o convite.");
+    return;
+  }
+
+  const url = makeInviteUrl();
+  const text =
+    "Oi! Vamos jogar " + selectedGame.name +
+    "? Entre direto na minha sala pelo link: " + url +
+    " (código: " + roomCode + ").";
+
+  window.open(
+    "https://wa.me/?text=" + encodeURIComponent(text),
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
+
+async function copyInviteLink() {
+  const input = byId("room-invite-link");
+  if (!input || !input.value) return;
+
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch {
+    input.focus();
+    input.select();
+    document.execCommand("copy");
+  }
+
+  showToast("Link do convite copiado.");
+}
+
+function updateRoom(message) {
+  const room = message.room;
+  if (!room) return;
+
+  roomCode = room.code || roomCode;
+  roomStarted = Boolean(room.started);
+
+  const players = Array.isArray(room.players) ? room.players : [];
+  const me = players.find((player) => player.name === playerName);
+  const isHost = Boolean(me && me.host);
+  const privateRoom = room.mode === "private";
+
+  const status = byId("room-connection-status");
+  const note = byId("room-message");
+  const list = byId("room-players");
+
+  if (status) status.textContent = "Conectado";
+
+  if (note) {
+    if (roomStarted) {
+      note.textContent = "A partida começou.";
+    } else if (players.length >= 2) {
+      note.textContent = isHost
+        ? "Seu convidado entrou. A partida começará automaticamente."
+        : "Você entrou na sala. Aguardando o início da partida.";
+    } else {
+      note.textContent = "Sala criada. Aguardando seu convidado entrar.";
+    }
+  }
+
+  if (list) {
+    list.replaceChildren();
+
+    players.forEach((player) => {
+      const chip = document.createElement("span");
+      chip.className = "player-chip";
+
+      const avatar = document.createElement("span");
+      avatar.className = "avatar";
+      avatar.textContent = (player.name || "J").slice(0, 1).toUpperCase();
+
+      const label = document.createElement("span");
+      label.textContent =
+        (player.name || "Jogador") +
+        (player.host ? " · anfitrião" : "") +
+        (player.bot ? " · máquina" : "");
+
+      chip.append(avatar, label);
+      list.appendChild(chip);
+    });
+  }
+
+  if (roomCode && privateRoom) {
+    const input = byId("room-invite-link");
+    const share = byId("share-whatsapp");
+    const copy = byId("copy-room-link");
+
+    if (input) input.value = makeInviteUrl();
+    if (share) share.disabled = false;
+    if (copy) copy.disabled = false;
+  }
+
+  if (roomStarted) showToast("A partida foi iniciada.");
+}
+
+function sendGameAction(action) {
+  if (roomSocket?.readyState === WebSocket.OPEN) {
+    roomSocket.send(JSON.stringify({ t: "action", action }));
+  }
+}
+
+function renderGame(message) {
+  const root = byId("game-root");
+  const module = window.GameModules?.[message.game];
+
+  if (!root || !module || typeof module.render !== "function") return;
+
+  module.render(root, message.state, sendGameAction);
+
+  const gameScreen = byId("screen-game");
+  if (gameScreen) setScreen("game");
+}
+
+function connectRoom(mode, code = "") {
+  if (!selectedGame) {
+    showToast("Não foi possível identificar o jogo deste convite.");
+    return;
+  }
+
+  if (window.location.protocol === "file:") {
+    const status = byId("room-connection-status");
+    const note = byId("room-message");
+    if (status) status.textContent = "Servidor necessário";
+    if (note) {
+      note.textContent =
+        "Abra o jogo pelo endereço HTTPS publicado para conectar à sala.";
+    }
+    return;
+  }
+
+  if (roomSocket) {
+    roomSocket.onclose = null;
+    roomSocket.close();
+  }
+
+  byId("lobby-options")?.classList.add("hidden");
+  byId("public-room")?.classList.add("hidden");
+  byId("invite-room")?.classList.remove("hidden");
+
+  if (!byId("room-connection-status")) buildRoomPanel();
+
+  const status = byId("room-connection-status");
+  const note = byId("room-message");
+  const players = byId("room-players");
+
+  if (status) status.textContent = "Conectando...";
+  if (note) note.textContent = "Conectando à sala do jogo...";
+  if (players) players.replaceChildren();
+
+  const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+
+  try {
+    roomSocket = new WebSocket(protocol + window.location.host + "/ws");
+  } catch {
+    if (status) status.textContent = "Falha na conexão";
+    if (note) note.textContent = "Não foi possível conectar ao servidor.";
+    return;
+  }
+
+  roomSocket.onopen = () => {
+    const payload = {
+      t: "join",
+      name: playerName,
+      game: selectedGame.id,
+      mode,
+      code
+    };
+
+    roomSocket.send(JSON.stringify(payload));
+  };
+
+  roomSocket.onmessage = (event) => {
     let message;
 
     try {
@@ -72,324 +399,132 @@ function connect() {
     }
 
     if (message.t === "error") {
-      const target = $("entry-screen").classList.contains("hidden")
-        ? "lobby-error"
-        : "entry-error";
-      showError(message.message, target);
+      if (status) status.textContent = "Não foi possível entrar";
+      if (note) {
+        note.textContent = message.message || "O servidor recusou a entrada na sala.";
+      }
       return;
     }
 
     if (message.t === "room") {
-      currentRoom = message.room;
-      renderRoom();
+      updateRoom(message);
       return;
     }
 
     if (message.t === "game") {
-      currentGameState = message.state;
-      renderGame(message.game, message.state);
+      renderGame(message);
     }
-  });
+  };
 
-  socket.addEventListener("close", () => {
-    setConnection(false, "Desconectado");
-    if (currentRoom) {
-      showError("A conexão com a sala foi encerrada. Atualize a página para voltar a jogar.");
+  roomSocket.onerror = () => {
+    if (status) status.textContent = "Falha na conexão";
+    if (note) {
+      note.textContent = "Confira se o servidor WebSocket está ativo.";
     }
-  });
+  };
 
-  socket.addEventListener("error", () => {
-    setConnection(false, "Falha na conexão");
-  });
+  roomSocket.onclose = () => {
+    if (status) status.textContent = "Desconectado";
+
+    if (!roomStarted && note) {
+      note.textContent = "A conexão com a sala foi encerrada.";
+    }
+  };
 }
 
-function renderCatalog() {
-  const grid = $("game-grid");
-  grid.replaceChildren();
+function enterInviteAfterName() {
+  const game = findGame(inviteGameParam);
+  if (!inviteCode || !game) return false;
 
-  GAMES.forEach((game) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "game-card";
-    card.dataset.game = game.id;
-    card.setAttribute("aria-label", game.name + ", " + game.capacity);
-
-    const icon = document.createElement("span");
-    icon.className = "game-icon";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = {
-      "par-ou-impar": "🪙",
-      forca: "🔤",
-      jokenpo: "✊",
-      detetive: "🕵️",
-      velha: "▦",
-      xadrez: "♞"
-    }[game.id];
-
-    const details = document.createElement("div");
-    const title = document.createElement("h3");
-    title.textContent = game.name;
-
-    const capacity = document.createElement("p");
-    capacity.className = "game-capacity";
-    capacity.textContent = game.capacity;
-
-    const description = document.createElement("p");
-    description.textContent = game.ready
-      ? "Partida online disponível."
-      : "Módulo em preparação.";
-
-    details.append(title, capacity, description);
-    card.append(icon, details);
-
-    if (!game.ready) {
-      card.disabled = true;
-      card.title = "Este jogo ainda está em preparação.";
-    } else {
-      card.addEventListener("click", () => chooseGame(game));
-    }
-
-    grid.appendChild(card);
-  });
-}
-
-function chooseGame(game) {
   selectedGame = game;
-  $("lobby-title").textContent = game.name;
-  $("lobby-capacity").textContent = "Lotação: " + game.capacity;
-  $("lobby-error").textContent = "";
-  $("room-panel").classList.add("hidden");
-  $("join-code-form").classList.remove("hidden");
-  showScreen("lobby-screen");
-}
 
-function displayName() {
-  const value = $("player-name").value.trim().replace(/\s+/g, " ").slice(0, 16);
-
-  if (!value) {
-    showError("Digite seu nome para continuar.", "entry-error");
-    $("player-name").focus();
-    return "";
+  if (byId("lobby-icon")) {
+    byId("lobby-icon").textContent = game.icon;
+    byId("lobby-icon").style.setProperty("--game-color", game.color);
   }
 
-  return value;
-}
-
-function enterSelectedMode(mode, code = "") {
-  if (!selectedGame) {
-    showError("Selecione um jogo primeiro.");
-    return;
+  if (byId("selected-title")) {
+    byId("selected-title").textContent = game.name;
   }
 
-  if (!selectedGame.ready) {
-    showError("Este jogo ainda está em preparação.");
-    return;
+  if (byId("selected-description")) {
+    byId("selected-description").textContent =
+      game.description + " · " + game.players;
   }
 
-  if (!playerName) {
-    playerName = displayName();
-    if (!playerName) return;
-  }
-
-  $("lobby-error").textContent = "";
-  $("room-panel").classList.remove("hidden");
-
-  send({
-    t: "join",
-    name: playerName,
-    game: selectedGame.id,
-    mode,
-    code
-  });
+  setScreen("lobby");
+  buildRoomPanel();
+  connectRoom("private", inviteCode);
+  return true;
 }
 
-function renderRoom() {
-  if (!currentRoom) return;
+const nameForm = byId("name-form");
 
-  const game = GAMES.find((item) => item.id === currentRoom.game);
-  if (game) selectedGame = game;
+if (nameForm) {
+  nameForm.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-  $("room-panel").classList.remove("hidden");
-  $("join-code-form").classList.toggle("hidden", currentRoom.mode === "solo");
-  $("room-mode-label").textContent =
-    currentRoom.mode === "private" ? "Sala privada" :
-    currentRoom.mode === "solo" ? "Contra a máquina" : "Sala pública";
+    const input = byId("player-name");
+    const name = input?.value.trim();
 
-  $("room-status").textContent = currentRoom.started
-    ? "Partida iniciada."
-    : "Jogadores: " + currentRoom.players.length + "/" + currentRoom.max +
-      " · mínimo para iniciar: " + currentRoom.min + ".";
-
-  $("room-info").classList.remove("hidden");
-  $("room-info").replaceChildren();
-
-  const codeLine = document.createElement("p");
-  codeLine.textContent = "Código da sala: " + currentRoom.code;
-
-  const link = document.createElement("a");
-  const inviteUrl = new URL(location.href);
-  inviteUrl.searchParams.set("room", currentRoom.code);
-  inviteUrl.searchParams.set("game", currentRoom.game);
-  link.href = inviteUrl.toString();
-  link.textContent = "Abrir link de convite";
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-
-  $("room-info").append(codeLine, link);
-
-  const list = $("players-list");
-  list.replaceChildren();
-
-  currentRoom.players.forEach((player) => {
-    const row = document.createElement("div");
-    row.className = "player-row";
-    row.textContent = player.name +
-      (player.host ? " · anfitrião" : "") +
-      (player.bot ? " · máquina" : "");
-    list.appendChild(row);
-  });
-
-  const myPlayer = currentRoom.players.find((player) => player.name === playerName && !player.bot);
-  const isHost = !!myPlayer?.host;
-  const needsBot = currentRoom.players.length < currentRoom.min;
-  const canFillBots = currentRoom.game === "par-ou-impar" && isHost && needsBot && !currentRoom.started;
-
-  $("complete-bots-button").classList.toggle("hidden", !canFillBots);
-  $("share-button").classList.toggle("hidden", currentRoom.mode !== "private");
-  $("leave-room-button").classList.remove("hidden");
-
-  showScreen(currentRoom.started ? "game-screen" : "lobby-screen");
-}
-
-function renderGame(gameId, state) {
-  const module = window.GameModules && window.GameModules[gameId];
-  const root = $("game-root");
-
-  if (!module || typeof module.render !== "function") {
-    root.textContent = "A interface deste jogo ainda está em preparação.";
-    showScreen("game-screen");
-    return;
-  }
-
-  gameActionHandler = (action) => send({ t: "action", action });
-  module.render(root, state, gameActionHandler);
-  showScreen("game-screen");
-}
-
-async function shareInvite() {
-  if (!currentRoom) return;
-
-  const inviteUrl = new URL(location.href);
-  inviteUrl.searchParams.set("room", currentRoom.code);
-  inviteUrl.searchParams.set("game", currentRoom.game);
-
-  const message = "Vamos jogar " +
-    (GAMES.find((game) => game.id === currentRoom.game)?.name || currentRoom.game) +
-    "? Entre na minha sala: " + inviteUrl.toString() +
-    " (código: " + currentRoom.code + ")";
-
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: "Convite para jogar",
-        text: message,
-        url: inviteUrl.toString()
-      });
-      return;
-    }
-  } catch (error) {
-    if (error && error.name === "AbortError") return;
-  }
-
-  window.open(
-    "https://wa.me/?text=" + encodeURIComponent(message),
-    "_blank",
-    "noopener,noreferrer"
-  );
-}
-
-$("entry-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  playerName = displayName();
-  if (!playerName) return;
-
-  $("entry-error").textContent = "";
-  $("welcome-name").textContent = playerName;
-
-  const params = new URLSearchParams(location.search);
-  const roomCode = params.get("room");
-  const invitedGameId = params.get("game");
-
-  if (roomCode && invitedGameId) {
-    const invitedGame = GAMES.find((game) => game.id === invitedGameId);
-
-    if (!invitedGame || !invitedGame.ready) {
-      showError("Este convite não corresponde a um jogo disponível.", "entry-error");
+    if (!name) {
+      if (byId("name-error")) {
+        byId("name-error").textContent = "Digite seu nome para continuar.";
+      }
+      input?.focus();
       return;
     }
 
-    selectedGame = invitedGame;
-    $("lobby-title").textContent = invitedGame.name;
-    $("lobby-capacity").textContent = "Lotação: " + invitedGame.capacity;
-    showScreen("lobby-screen");
-    enterSelectedMode("private", roomCode);
-    return;
-  }
+    playerName = name.slice(0, 16);
 
-  showScreen("menu-screen");
-});
+    if (byId("name-error")) byId("name-error").textContent = "";
+    if (byId("welcome-name")) byId("welcome-name").textContent = playerName;
+    if (byId("lobby-player")) byId("lobby-player").textContent = playerName;
 
-$("change-name").addEventListener("click", () => {
-  showScreen("entry-screen");
-  $("player-name").focus();
-});
-
-$("public-button").addEventListener("click", () => enterSelectedMode("public"));
-$("solo-button").addEventListener("click", () => enterSelectedMode("solo"));
-$("private-button").addEventListener("click", () => enterSelectedMode("private"));
-
-$("join-code-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  const code = $("room-code-input").value.trim().toUpperCase();
-  if (!code) {
-    $("room-code-input").focus();
-    showError("Digite o código da sala.");
-    return;
-  }
-
-  enterSelectedMode("private", code);
-});
-
-$("complete-bots-button").addEventListener("click", () => {
-  send({ t: "completeBots" });
-});
-
-$("share-button").addEventListener("click", shareInvite);
-
-function leaveRoomAndReturn() {
-  send({ t: "leave" });
-  currentRoom = null;
-  currentGameState = null;
-  gameActionHandler = null;
-  $("room-panel").classList.add("hidden");
-  $("lobby-error").textContent = "";
-  showScreen("menu-screen");
+    if (enterInviteAfterName()) return;
+    setScreen("games");
+  });
 }
 
-$("back-menu").addEventListener("click", () => {
-  if (currentRoom) {
-    leaveRoomAndReturn();
-    return;
+byId("back-games")?.addEventListener("click", () => {
+  if (roomSocket) {
+    roomSocket.onclose = null;
+    roomSocket.close();
+    roomSocket = null;
   }
-
-  showScreen("menu-screen");
+  setScreen("games");
 });
 
-$("leave-room-button").addEventListener("click", leaveRoomAndReturn);
-$("leave-game-button").addEventListener("click", leaveRoomAndReturn);
+document.querySelectorAll("[data-mode]").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (!selectedGame) {
+      showToast("Selecione um jogo primeiro.");
+      return;
+    }
 
-window.GameModules = window.GameModules || {};
-renderCatalog();
-connect();
+    if (!playerName) {
+      showToast("Informe seu nome antes de criar ou entrar em uma sala.");
+      return;
+    }
+
+    const mode = button.dataset.mode;
+
+    if (mode === "public") {
+      connectRoom("public");
+      return;
+    }
+
+    if (mode === "bot") {
+      connectRoom("solo");
+      return;
+    }
+
+    if (mode === "invite") {
+      roomCode = "";
+      buildRoomPanel();
+      connectRoom("private");
+    }
+  });
+});
+
+renderGames();
