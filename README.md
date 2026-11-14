@@ -1,2 +1,3 @@
 # Testecell
-jogo de Par e Impar
+Jogo Geral
+
