@@ -1,1 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>Diversão com os amigos</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #f8fafc;
+    }
 
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      background:
+        radial-gradient(ellipse at top, rgba(139, 92, 246, .17), transparent 55%),
+        #020617;
+    }
+
+    main { width: min(100%, 760px); }
+
+    header { text-align: center; margin-bottom: 28px; }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      background: rgba(139, 92, 246, .16);
+      font-size: 32px;
+    }
+
+    .eyebrow {
+      color: #c4b5fd;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 8px 0; font-size: clamp(2rem, 6vw, 3rem); }
+    h2 { margin: 8px 0; font-size: 1.6rem; }
+    p { line-height: 1.5; }
+
+    .muted { color: #94a3b8; }
+
+    .panel {
+      padding: clamp(20px, 5vw, 32px);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 24px;
+      background: #0f172a;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .3);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px 16px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 14px;
+      background: #020617;
+      color: #fff;
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #a78bfa;
+      box-shadow: 0 0 0 3px rgba(167, 139, 250, .18);
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 800;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+
+    button:active { transform: scale(.99); }
+
+    .primary {
+      width: 100%;
+      margin-top: 14px;
+      padding: 15px 18px;
+      background: #8b5cf6;
+      color: #fff;
+    }
+
+    .primary:hover { background: #7c3aed; }
+    .primary:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+
+    .secondary {
+      padding: 10px 13px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      background: transparent;
+      color: #cbd5e1;
+    }
+
+    .secondary:hover { background: rgba(255, 255, 255, .06); }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .game-card {
+      min-height: 160px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 18px;
+      background: #0f172a;
+      color: #fff;
+      text-align: left;
+    }
+
+    .game-card:hover, .game-card.selected {
+      border-color: #a78bfa;
+      background: #1e293b;
+    }
+
+    .game-card.selected { box-shadow: 0 0 0 2px #a78bfa; }
+
+    .game-icon { font-size: 26px; }
+    .game-card h3 { margin: 14px 0 4px; font-size: 1.1rem; }
+    .players { margin: 0; color: #c4b5fd; font-size: .9rem; font-weight: 800; }
+    .description { margin: 8px 0 0; color: #94a3b8; font-size: .9rem; }
+
+    .notice {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(167, 139, 250, .25);
+      border-radius: 14px;
+      background: rgba(139, 92, 246, .1);
+      color: #ede9fe;
+    }
+
+    .room-code {
+      margin: 8px 0 0;
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: .2em;
+    }
+
+    .waiting {
+      padding: 16px;
+      border: 1px solid rgba(251, 191, 36, .25);
+      border-radius: 16px;
+      background: rgba(251, 191, 36, .08);
+      color: #fef3c7;
+    }
+
+    .hidden { display: none !important; }
+
+    footer {
+      margin-top: 22px;
+      color: #64748b;
+      font-size: .8rem;
+      text-align: center;
+    }
+
+    @media (max-width: 560px) {
+      .game-grid { grid-template-columns: 1fr; }
+      .game-card { min-height: 135px; }
+      .top-row { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="logo" aria-hidden="true">🎮</div>
+      <div class="eyebrow">Diversão com os amigos</div>
+      <h1>Escolha sua diversão</h1>
+      <p class="muted">Entre com seu nome e escolha o jogo da vez.</p>
+    </header>
+
+    <section id="name-screen" class="panel">
+      <div class="eyebrow">Etapa 1 de 2</div>
+      <h2>Como devemos chamar você?</h2>
+      <p class="muted">Seu nome aparecerá para os outros jogadores.</p>
+      <form id="name-form">
+        <label for="player-name">Seu nome</label>
+        <input id="player-name" maxlength="16" autocomplete="nickname"
+          placeholder="Digite seu nome" required>
+        <button class="primary" type="submit">Continuar para os jogos →</button>
+      </form>
+    </section>
+
+    <section id="games-screen" class="hidden">
+      <div class="top-row">
+        <div>
+          <div class="eyebrow">Etapa 2 de 2</div>
+          <h2>Qual jogo você quer?</h2>
+          <p class="muted">Olá, <strong id="welcome-name"></strong>! Selecione uma opção.</p>
+        </div>
+        <button id="change-name" class="secondary" type="button">Trocar nome</button>
+      </div>
+
+      <div id="game-list" class="game-grid"></div>
+      <div id="selection-message" class="notice hidden" role="status"></div>
+      <button id="choose-game" class="primary" type="button" disabled>
+        Escolha um jogo para continuar
+      </button>
+      <p class="muted" style="text-align:center;font-size:.82rem">
+        As regras e a dinâmica dos demais jogos serão adicionadas depois.
+      </p>
+    </section>
+
+    <section id="room-screen" class="panel hidden">
+      <div class="eyebrow">Sala de jogo</div>
+      <h2>Par ou Ímpar <span class="muted">· 1x1</span></h2>
+      <p class="muted">Você entrou na sala, <strong id="room-player-name"></strong>.</p>
+
+      <div class="waiting">
+        <strong>A sala está esperando outro jogador</strong>
+        <p style="margin-bottom:0">Convide um amigo para jogar com você.</p>
+      </div>
+
+      <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
+        <div class="eyebrow">Código da sala</div>
+        <div id="room-code" class="room-code"></div>
+      </div>
+
+      <button id="invite-friend" class="primary" type="button">
+        Convidar amigo(a) pelo WhatsApp ↗
+      </button>
+      <p id="invite-status" class="notice hidden" role="status"></p>
+      <p class="muted" style="text-align:center;font-size:.82rem">
+        Você poderá escolher o contato no WhatsApp ou no menu de compartilhamento do celular.
+      </p>
+      <button id="back-to-games" class="secondary" type="button" style="width:100%;margin-top:8px">
+        Voltar à seleção de jogos
+      </button>
+    </section>
+
+    <footer>Uma sala, vários jogos, muita diversão.</footer>
+  </main>
+
+  <script>
+    const games = [
+      { name: "Par ou Ímpar", players: "1x1", icon: "🪙", description: "Desafie outro jogador neste clássico." },
+      { name: "Jokenpô", players: "2 a 6 jogadores", icon: "✊", description: "Pedra, papel e tesoura em grupo." },
+      { name: "Detetive", players: "8 a 10 jogadores", icon: "🕵️", description: "Investigue e descubra o mistério." },
+      { name: "Jogo da Forca", players: "1 a 4 jogadores", icon: "🔤", description: "Adivinhe a palavra antes que o tempo acabe." },
+      { name: "Stop", players: "2 a 10 jogadores", icon: "📝", description: "Pense rápido e complete as categorias." }
+    ];
+
+    const nameScreen = document.getElementById("name-screen");
+    const gamesScreen = document.getElementById("games-screen");
+    const roomScreen = document.getElementById("room-screen");
+    const nameInput = document.getElementById("player-name");
+    const welcomeName = document.getElementById("welcome-name");
+    const chooseButton = document.getElementById("choose-game");
+    const selectionMessage = document.getElementById("selection-message");
+    const gameList = document.getElementById("game-list");
+
+    let playerName = "";
+    let selectedGame = "";
+    let roomCode = "";
+
+    function renderGames() {
+      games.forEach((game) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "game-card";
+        card.dataset.game = game.name;
+
+        const icon = document.createElement("span");
+        icon.className = "game-icon";
+        icon.textContent = game.icon;
+
+        const title = document.createElement("h3");
+        title.textContent = game.name;
+
+        const players = document.createElement("p");
+        players.className = "players";
+        players.textContent = game.players;
+
+        const description = document.createElement("p");
+        description.className = "description";
+        description.textContent = game.description;
+
+        card.append(icon, title, players, description);
+        card.addEventListener("click", () => selectGame(game.name, card));
+        gameList.appendChild(card);
+      });
+    }
+
+    function selectGame(name, selectedCard) {
+      document.querySelectorAll(".game-card").forEach((card) => {
+        card.classList.remove("selected");
+      });
+
+      selectedCard.classList.add("selected");
+      selectedGame = name;
+      chooseButton.disabled = false;
+      chooseButton.textContent = "Continuar com " + name;
+      selectionMessage.classList.add("hidden");
+    }
+
+    document.getElementById("name-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      playerName = nameInput.value.trim();
+
+      if (!playerName) {
+        nameInput.focus();
+        return;
+      }
+
+      welcomeName.textContent = playerName;
+      nameScreen.classList.add("hidden");
+      gamesScreen.classList.remove("hidden");
+    });
+
+    document.getElementById("change-name").addEventListener("click", () => {
+      gamesScreen.classList.add("hidden");
+      nameScreen.classList.remove("hidden");
+      nameInput.focus();
+    });
+
+    chooseButton.addEventListener("click", () => {
+      if (!selectedGame) return;
+
+      if (selectedGame === "Par ou Ímpar") {
+        roomCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+        document.getElementById("room-player-name").textContent = playerName;
+        document.getElementById("room-code").textContent = roomCode;
+        gamesScreen.classList.add("hidden");
+        roomScreen.classList.remove("hidden");
+        return;
+      }
+
+      selectionMessage.textContent =
+        selectedGame + " foi selecionado. A dinâmica desse jogo será adicionada depois.";
+      selectionMessage.classList.remove("hidden");
+    });
+
+    document.getElementById("invite-friend").addEventListener("click", async () => {
+      const status = document.getElementById("invite-status");
+
+      if (window.location.protocol === "file:") {
+        status.textContent =
+          "Para compartilhar um convite, publique esta página em um site com endereço HTTPS.";
+        status.classList.remove("hidden");
+        return;
+      }
+
+      const inviteUrl = new URL(window.location.href);
+      inviteUrl.searchParams.set("sala", roomCode);
+
+      const message =
+        "Oi! Vamos jogar Par ou Ímpar? Entre na minha sala: " +
+        inviteUrl.toString() + " (código: " + roomCode + ")";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "Convite para jogar Par ou Ímpar",
+            text: message,
+            url: inviteUrl.toString()
+          });
+          return;
+        } catch (error) {
+          if (error && error.name === "AbortError") return;
+        }
+      }
+
+      window.open(
+        "https://wa.me/?text=" + encodeURIComponent(message),
+        "_blank",
+        "noopener,noreferrer"
+      );
+    });
+
+    document.getElementById("back-to-games").addEventListener("click", () => {
+      roomScreen.classList.add("hidden");
+      gamesScreen.classList.remove("hidden");
+    });
+
+    renderGames();
+  </script>
+</body>
+</html>
