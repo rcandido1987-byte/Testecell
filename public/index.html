@@ -239,8 +239,13 @@
       <p class="muted">Você entrou na sala, <strong id="room-player-name"></strong>.</p>
 
       <div class="waiting">
-        <strong>Sala pronta para receber os jogadores</strong>
+        <strong id="room-live-status">Conectando à sala...</strong>
         <p style="margin-bottom:0">Compartilhe o convite: quem abrir o link entrará diretamente nesta sala e neste jogo.</p>
+      </div>
+
+      <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
+        <div class="eyebrow">Jogadores nesta sala</div>
+        <ul id="room-player-list" style="margin:10px 0 0;padding-left:20px"></ul>
       </div>
 
       <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
@@ -285,24 +290,110 @@
     let selectedGame = "";
     let roomCode = "";
     let roomGame = "";
+    let roomMode = "create";
+    let roomSocket = null;
+    let roomReady = false;
 
     const inviteParams = new URLSearchParams(window.location.search);
     const invitedRoom = inviteParams.get("sala");
     const invitedGame = inviteParams.get("jogo");
 
-    function openRoom(gameName, code) {
+    function openRoom(gameName, code, mode = "create") {
       const game = games.find((item) => item.name === gameName);
-      if (!game || !code) return;
+      if (!game || (mode === "join" && !code)) return;
+
+      if (roomSocket) {
+        roomSocket.onclose = null;
+        roomSocket.close();
+      }
 
       roomGame = game.name;
-      roomCode = code;
+      roomCode = code || "";
+      roomMode = mode;
+      roomReady = false;
+
       document.getElementById("room-game-name").textContent = game.name;
       document.getElementById("room-game-players").textContent = game.players;
       document.getElementById("room-player-name").textContent = playerName;
-      document.getElementById("room-code").textContent = roomCode;
+      document.getElementById("room-code").textContent = roomCode || "Conectando...";
+      document.getElementById("room-live-status").textContent = "Conectando à sala...";
+      document.getElementById("room-player-list").replaceChildren();
+      document.getElementById("invite-friend").disabled = true;
+      document.getElementById("invite-friend").style.opacity = ".55";
+
       nameScreen.classList.add("hidden");
       gamesScreen.classList.add("hidden");
       roomScreen.classList.remove("hidden");
+
+      if (window.location.protocol === "file:") {
+        document.getElementById("room-live-status").textContent =
+          "Abra o jogo pelo endereço HTTPS do Render para conectar à sala.";
+        return;
+      }
+
+      const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+      try {
+        roomSocket = new WebSocket(wsProtocol + window.location.host + "/ws");
+      } catch {
+        document.getElementById("room-live-status").textContent = "Não foi possível conectar ao servidor.";
+        return;
+      }
+
+      roomSocket.onopen = () => {
+        if (roomMode === "join") {
+          roomSocket.send(JSON.stringify({ t: "join", name: playerName, code: roomCode }));
+        } else {
+          roomSocket.send(JSON.stringify({ t: "create", name: playerName, game: roomGame }));
+        }
+      };
+
+      roomSocket.onmessage = (event) => {
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (message.t === "error") {
+          document.getElementById("room-live-status").textContent = message.message;
+          return;
+        }
+
+        if (message.t !== "state" || !message.room) return;
+
+        roomCode = message.room.code;
+        roomGame = message.room.game;
+        document.getElementById("room-code").textContent = roomCode;
+        document.getElementById("room-live-status").textContent =
+          "Sala conectada · " + message.room.players.length + " jogador(es)";
+        const list = document.getElementById("room-player-list");
+        list.replaceChildren();
+
+        message.room.players.forEach((player) => {
+          const item = document.createElement("li");
+          item.textContent = player.name + (player.host ? " · anfitrião" : "");
+          list.appendChild(item);
+        });
+
+        roomReady = true;
+        document.getElementById("invite-friend").disabled = false;
+        document.getElementById("invite-friend").style.opacity = "1";
+      };
+
+      roomSocket.onerror = () => {
+        document.getElementById("room-live-status").textContent =
+          "Falha na conexão. Confira se o server.js atualizado está no Render.";
+      };
+
+      roomSocket.onclose = () => {
+        roomReady = false;
+        document.getElementById("invite-friend").disabled = true;
+        document.getElementById("invite-friend").style.opacity = ".55";
+        if (document.getElementById("room-screen").classList.contains("hidden") === false) {
+          document.getElementById("room-live-status").textContent = "Conexão com a sala encerrada.";
+        }
+      };
     }
 
     function renderGames() {
@@ -357,7 +448,7 @@
       welcomeName.textContent = playerName;
 
       if (invitedRoom && invitedGame && games.some((game) => game.name === invitedGame)) {
-        openRoom(invitedGame, invitedRoom);
+        openRoom(invitedGame, invitedRoom, "join");
         return;
       }
 
@@ -374,12 +465,17 @@
     chooseButton.addEventListener("click", () => {
       if (!selectedGame) return;
 
-      roomCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-      openRoom(selectedGame, roomCode);
+      openRoom(selectedGame, "", "create");
     });
 
     document.getElementById("invite-friend").addEventListener("click", async () => {
       const status = document.getElementById("invite-status");
+
+      if (!roomReady || !roomCode) {
+        status.textContent = "Aguarde a conexão com a sala antes de enviar o convite.";
+        status.classList.remove("hidden");
+        return;
+      }
 
       if (window.location.protocol === "file:") {
         status.textContent =
@@ -416,6 +512,15 @@
     });
 
     document.getElementById("back-to-games").addEventListener("click", () => {
+      if (roomSocket) {
+        roomSocket.onclose = null;
+        if (roomSocket.readyState === WebSocket.OPEN) {
+          roomSocket.send(JSON.stringify({ t: "leave" }));
+        }
+        roomSocket.close();
+        roomSocket = null;
+      }
+      roomReady = false;
       roomScreen.classList.add("hidden");
       gamesScreen.classList.remove("hidden");
     });
