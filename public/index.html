@@ -234,13 +234,13 @@
     </section>
 
     <section id="room-screen" class="panel hidden">
-      <div class="eyebrow">Sala de jogo</div>
+      <div class="eyebrow" id="room-kind">Sala pública</div>
       <h2><span id="room-game-name"></span> <span class="muted">· <span id="room-game-players"></span></span></h2>
-      <p class="muted">Você entrou na sala, <strong id="room-player-name"></strong>.</p>
+      <p class="muted">Olá, <strong id="room-player-name"></strong>.</p>
 
       <div class="waiting">
         <strong id="room-live-status">Conectando à sala...</strong>
-        <p style="margin-bottom:0">Compartilhe o convite: quem abrir o link entrará diretamente nesta sala e neste jogo.</p>
+        <p id="room-help" style="margin-bottom:0">Esta é a sala pública. Para jogar em particular, crie uma sala e envie o convite.</p>
       </div>
 
       <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
@@ -248,17 +248,24 @@
         <ul id="room-player-list" style="margin:10px 0 0;padding-left:20px"></ul>
       </div>
 
-      <div class="panel" style="margin-top:14px;padding:16px;background:#020617">
-        <div class="eyebrow">Código da sala</div>
+      <div id="private-code-panel" class="panel hidden" style="margin-top:14px;padding:16px;background:#020617">
+        <div class="eyebrow">Código da sala particular</div>
         <div id="room-code" class="room-code"></div>
       </div>
 
-      <button id="invite-friend" class="primary" type="button">
-        Convidar amigo(a) para esta sala ↗
+      <form id="join-code-form" style="margin-top:14px">
+        <label for="private-room-code">Entrar em uma sala particular</label>
+        <input id="private-room-code" maxlength="6" autocomplete="off" placeholder="Digite o código"
+          style="width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:#020617;color:#fff;font:inherit;text-transform:uppercase">
+        <button class="secondary" type="submit" style="width:100%;margin-top:8px">Entrar com código</button>
+      </form>
+
+      <button id="invite-friend" class="primary" type="button" disabled>
+        Criar sala particular e convidar
       </button>
       <p id="invite-status" class="notice hidden" role="status"></p>
-      <p class="muted" style="text-align:center;font-size:.82rem">
-        Você poderá escolher o contato no WhatsApp ou no menu de compartilhamento do celular.
+      <p id="invite-help" class="muted" style="text-align:center;font-size:.82rem">
+        Ao criar a sala particular, você poderá compartilhar o link ou o código com seu amigo.
       </p>
       <button id="back-to-games" class="secondary" type="button" style="width:100%;margin-top:8px">
         Voltar à seleção de jogos
@@ -298,7 +305,7 @@
     const invitedRoom = inviteParams.get("sala");
     const invitedGame = inviteParams.get("jogo");
 
-    function openRoom(gameName, code, mode = "create") {
+    function openRoom(gameName, code, mode = "public") {
       const game = games.find((item) => item.name === gameName);
       if (!game || (mode === "join" && !code)) return;
 
@@ -315,9 +322,11 @@
       document.getElementById("room-game-name").textContent = game.name;
       document.getElementById("room-game-players").textContent = game.players;
       document.getElementById("room-player-name").textContent = playerName;
-      document.getElementById("room-code").textContent = roomCode || "Conectando...";
       document.getElementById("room-live-status").textContent = "Conectando à sala...";
       document.getElementById("room-player-list").replaceChildren();
+      document.getElementById("private-code-panel").classList.add("hidden");
+      document.getElementById("join-code-form").classList.remove("hidden");
+      document.getElementById("invite-status").classList.add("hidden");
       document.getElementById("invite-friend").disabled = true;
       document.getElementById("invite-friend").style.opacity = ".55";
 
@@ -340,11 +349,10 @@
       }
 
       roomSocket.onopen = () => {
-        if (roomMode === "join") {
-          roomSocket.send(JSON.stringify({ t: "join", name: playerName, code: roomCode }));
-        } else {
-          roomSocket.send(JSON.stringify({ t: "create", name: playerName, game: roomGame }));
-        }
+        const message = roomMode === "join"
+          ? { t: "join", name: playerName, code: roomCode }
+          : { t: "public", name: playerName, game: roomGame };
+        roomSocket.send(JSON.stringify(message));
       };
 
       roomSocket.onmessage = (event) => {
@@ -362,14 +370,32 @@
 
         if (message.t !== "state" || !message.room) return;
 
-        roomCode = message.room.code;
+        roomCode = message.room.code || "";
         roomGame = message.room.game;
+        roomMode = message.room.private ? "private" : "public";
+
+        document.getElementById("room-kind").textContent =
+          roomMode === "private" ? "Sala particular" : "Sala pública";
+        document.getElementById("room-help").textContent =
+          roomMode === "private"
+            ? "Você está na sala particular. Compartilhe o link ou o código com quem vai jogar."
+            : "Esta é a sala pública. Para jogar em particular, crie uma sala e envie o convite.";
+        document.getElementById("private-code-panel").classList.toggle("hidden", roomMode !== "private");
+        document.getElementById("join-code-form").classList.toggle("hidden", roomMode !== "public");
         document.getElementById("room-code").textContent = roomCode;
         document.getElementById("room-live-status").textContent =
-          "Sala conectada · " + message.room.players.length + " jogador(es)";
+          "Conectado · " + message.room.players.length + " jogador(es) nesta sala";
+
+        const inviteButton = document.getElementById("invite-friend");
+        inviteButton.textContent = roomMode === "public"
+          ? "Criar sala particular e convidar"
+          : "Compartilhar convite da sala ↗";
+        document.getElementById("invite-help").textContent = roomMode === "public"
+          ? "A sala particular será criada quando você tocar no botão acima."
+          : "Compartilhe o link ou envie o código " + roomCode + " para seu amigo.";
+
         const list = document.getElementById("room-player-list");
         list.replaceChildren();
-
         message.room.players.forEach((player) => {
           const item = document.createElement("li");
           item.textContent = player.name + (player.host ? " · anfitrião" : "");
@@ -377,8 +403,8 @@
         });
 
         roomReady = true;
-        document.getElementById("invite-friend").disabled = false;
-        document.getElementById("invite-friend").style.opacity = "1";
+        inviteButton.disabled = false;
+        inviteButton.style.opacity = "1";
       };
 
       roomSocket.onerror = () => {
@@ -390,7 +416,7 @@
         roomReady = false;
         document.getElementById("invite-friend").disabled = true;
         document.getElementById("invite-friend").style.opacity = ".55";
-        if (document.getElementById("room-screen").classList.contains("hidden") === false) {
+        if (!document.getElementById("room-screen").classList.contains("hidden")) {
           document.getElementById("room-live-status").textContent = "Conexão com a sala encerrada.";
         }
       };
@@ -465,21 +491,27 @@
     chooseButton.addEventListener("click", () => {
       if (!selectedGame) return;
 
-      openRoom(selectedGame, "", "create");
+      openRoom(selectedGame, "", "public");
     });
 
     document.getElementById("invite-friend").addEventListener("click", async () => {
       const status = document.getElementById("invite-status");
 
-      if (!roomReady || !roomCode) {
-        status.textContent = "Aguarde a conexão com a sala antes de enviar o convite.";
+      if (!roomReady || !roomSocket || roomSocket.readyState !== WebSocket.OPEN) {
+        status.textContent = "Aguarde a conexão com a sala.";
         status.classList.remove("hidden");
         return;
       }
 
-      if (window.location.protocol === "file:") {
-        status.textContent =
-          "Para compartilhar um convite, publique esta página em um site com endereço HTTPS.";
+      if (roomMode === "public") {
+        roomSocket.send(JSON.stringify({ t: "create", name: playerName, game: roomGame }));
+        status.textContent = "Criando sua sala particular...";
+        status.classList.remove("hidden");
+        return;
+      }
+
+      if (!roomCode) {
+        status.textContent = "O código da sala ainda não está disponível.";
         status.classList.remove("hidden");
         return;
       }
@@ -509,6 +541,16 @@
         "_blank",
         "noopener,noreferrer"
       );
+    });
+
+    document.getElementById("join-code-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const code = document.getElementById("private-room-code").value.trim().toUpperCase();
+      if (!code) {
+        document.getElementById("private-room-code").focus();
+        return;
+      }
+      openRoom(roomGame, code, "join");
     });
 
     document.getElementById("back-to-games").addEventListener("click", () => {
